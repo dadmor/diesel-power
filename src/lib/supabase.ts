@@ -1,55 +1,100 @@
-// ===== src/lib/supabase.ts - POPRAWIONY =====
+// src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js';
-import { Vendor } from '../types';
 
-const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Brak konfiguracji Supabase - sprawdź zmienne środowiskowe');
+}
 
-export const checkConnection = async () => {
-  const { error: connectionError } = await supabase
-    .from('information_schema.tables')
-    .select('table_name')
-    .limit(1);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-  if (connectionError) throw new Error(`Połączenie: ${connectionError.message}`);
+// Sprawdzanie czy wszystko istnieje
+export async function checkConnection() {
+  try {
+    // Sprawdź tabele vendors
+    const { error: vendorsError } = await supabase.from('vendors').select('id').limit(1);
+    const hasVendorsTable = !vendorsError || vendorsError.code !== '42P01';
 
-  const { error: vendorsError } = await supabase.from('vendors').select('id').limit(1);
-  const { error: funcError } = await supabase.rpc('exec_sql', { sql: 'SELECT 1' });
+    // Sprawdź funkcję exec_sql
+    const { error: funcError } = await supabase.rpc('exec_sql', { sql: 'SELECT 1' });
+    const hasExecFunction = !funcError;
 
-  return {
-    hasVendorsTable: !vendorsError,
-    hasExecFunction: !funcError
-  };
-};
+    return { hasVendorsTable, hasExecFunction };
+  } catch {
+    return { hasVendorsTable: false, hasExecFunction: false };
+  }
+}
 
-export const createTables = async (slug: string, tables: any[]) => {
-  for (const table of tables) {
+// Tworzenie całej infrastruktury w jednym SQL
+export async function createBaseTables() {
+  const sql = `
+    -- Tabela vendors
+    CREATE TABLE IF NOT EXISTS vendors (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      slug TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      schema JSONB NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+
+    -- Funkcja exec_sql
+    CREATE OR REPLACE FUNCTION exec_sql(sql TEXT)
+    RETURNS TEXT LANGUAGE plpgsql SECURITY DEFINER
+    AS $$ 
+    BEGIN 
+      EXECUTE sql; 
+      RETURN 'OK';
+    EXCEPTION 
+      WHEN OTHERS THEN 
+        RETURN SQLERRM; 
+    END; 
+    $$;
+  `;
+
+  const { error } = await supabase.rpc('exec_sql', { sql });
+  if (error) throw new Error(`Setup failed: ${error.message}`);
+  return { success: true };
+}
+
+// Vendor operations
+export async function saveVendor(vendor: { slug: string; name: string; schema: object }) {
+  const { data, error } = await supabase.from('vendors').insert(vendor).select().single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function getVendorBySlug(slug: string) {
+  const { data, error } = await supabase.from('vendors').select('*').eq('slug', slug).single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+export async function getVendors() {
+  const { data, error } = await supabase.from('vendors').select('*').order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+// Tworzenie tabel vendora
+export async function createTables(slug: string, tables: Array<{name: string, fields: Array<{name: string, type: string}>}>) {
+  const createStatements = tables.map(table => {
     const tableName = `${slug}_${table.name}`;
-    const columns = table.fields.map((f: any) => {
-      const type = f.type === 'number' ? 'NUMERIC' : f.type === 'date' ? 'TIMESTAMP' : 'TEXT';
-      return `${f.name} ${type}`;
+    const columns = table.fields.map(field => {
+      const type = field.type === 'number' ? 'INTEGER' : 
+                   field.type === 'boolean' ? 'BOOLEAN' : 
+                   field.type === 'date' ? 'DATE' : 'TEXT';
+      return `${field.name} ${type}`;
     }).join(', ');
-
-    const sql = `CREATE TABLE IF NOT EXISTS ${tableName} (
-      id SERIAL PRIMARY KEY, ${columns},
+    
+    return `CREATE TABLE IF NOT EXISTS ${tableName} (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      ${columns},
       created_at TIMESTAMP DEFAULT NOW()
     );`;
+  }).join('\n');
 
-    const { error } = await supabase.rpc('exec_sql', { sql });
-    if (error) throw error;
-  }
-};
-
-export const saveVendor = async (vendor: Omit<Vendor, 'id' | 'created_at'>) => {
-  const { data, error } = await supabase.from('vendors').insert([vendor]).select().single();
-  if (error) throw error;
-  return data;
-};
-
-export const getVendor = async (slug: string) => {
-  const { data, error } = await supabase.from('vendors').select('*').eq('slug', slug).single();
-  if (error) throw error;
-  return data;
-};
+  const { error } = await supabase.rpc('exec_sql', { sql: createStatements });
+  if (error) throw new Error(`Table creation failed: ${error.message}`);
+}

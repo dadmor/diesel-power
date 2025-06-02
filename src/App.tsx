@@ -1,9 +1,10 @@
+// src/App.tsx
 import React from 'react';
 import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
 import { Chat } from './components/Chat';
 import { VendorApp } from './components/vendor/VendorApp';
 import { ConnectionChecker } from './components/ConnectionChecker';
-import { getVendor } from './lib/supabase';
+import { getVendorBySlug } from './lib/supabase';
 import { Vendor } from './types';
 
 const VendorWrapper: React.FC = () => {
@@ -13,7 +14,7 @@ const VendorWrapper: React.FC = () => {
 
   React.useEffect(() => {
     if (!vendorSlug) return;
-    getVendor(vendorSlug)
+    getVendorBySlug(vendorSlug)
       .then(setVendor)
       .catch(() => setVendor(null))
       .finally(() => setLoading(false));
