@@ -1,24 +1,19 @@
-// ===== src/types.ts =====
-export interface FieldSchema {
+export interface Field {
     name: string;
     type: 'string' | 'number' | 'text' | 'date' | 'boolean' | 'select';
-    options?: string[]; // dla select
+    options?: string[];
   }
   
-  export interface TableSchema {
+  export interface Table {
     name: string;
-    fields: FieldSchema[];
-  }
-  
-  export interface VendorSchema {
-    tables: TableSchema[];
+    fields: Field[];
   }
   
   export interface Vendor {
     id: string;
     slug: string;
     name: string;
-    schema: VendorSchema;
+    schema: { tables: Table[] };
     created_at: string;
   }
   
