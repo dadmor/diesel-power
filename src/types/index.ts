@@ -1,7 +1,7 @@
-// src/types/index.ts
+// src/types.ts - Updated type definitions
 export interface Field {
   name: string;
-  type: 'text' | 'textarea' | 'number' | 'email' | 'date' | 'checkbox' | 'boolean' | 'select';
+  type: 'string' | 'text' | 'number' | 'date' | 'boolean' | 'select';
   options?: string[];
 }
 
@@ -14,7 +14,9 @@ export interface Vendor {
   id: string;
   slug: string;
   name: string;
-  schema: { tables: Table[] };
+  schema: {
+    tables: Table[];
+  };
   created_at: string;
 }
 

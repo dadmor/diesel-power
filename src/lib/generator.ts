@@ -1,12 +1,12 @@
-// ===== src/lib/generator.ts - POPRAWIONY Z DEBUGIEM =====
-import { CreateVendorTag, Field } from '../types';
+// src/lib/generator.ts - FIXED WITH PROPER TYPES
+import { CreateVendorTag, Field, Table } from '../types';
 import { createTables, saveVendor } from './supabase';
 
-export const parseSchema = (schemaString: string) => {
+export const parseSchema = (schemaString: string): { tables: Table[] } => {
   console.log('🔍 Parsing schema:', schemaString);
   
-  const result = {
-    tables: schemaString.split(';').map(tableString => {
+  const tables: Table[] = schemaString.split(';')
+    .map(tableString => {
       console.log('🔍 Processing table string:', tableString);
       
       // Najpierw znajdź nazwę tabeli (przed pierwszym :)
@@ -22,34 +22,66 @@ export const parseSchema = (schemaString: string) => {
       console.log('📋 Table name:', tableName);
       console.log('📋 Fields string:', fieldsString);
       
-      // Parse fields - każde pole to name:type lub name:type:options
-      const fields = fieldsString.split(',').map(fieldString => {
-        const fieldParts = fieldString.trim().split(':');
-        console.log('🔍 Field parts:', fieldParts);
-        
-        if (fieldParts.length < 2) {
-          console.log('❌ Invalid field format:', fieldString);
-          return null;
-        }
-        
-        const field: Field = { 
-          name: fieldParts[0]?.trim() || '', 
-          type: fieldParts[1]?.trim() as Field['type']
-        };
-        
-        // Dodaj options dla select
-        if (field.type === 'select' && fieldParts.length > 2) {
-          field.options = fieldParts.slice(2).map(opt => opt?.trim()).filter(Boolean);
-        }
-        
-        console.log('✅ Parsed field:', field);
-        return field;
-      }).filter(f => f && f.name && f.type);
+      if (!tableName) {
+        console.log('❌ Empty table name');
+        return null;
+      }
       
-      return { name: tableName, fields };
-    }).filter(t => t && t.name && t.fields.length > 0)
-  };
+      // Parse fields - każde pole to name:type lub name:type:options
+      const fields: Field[] = fieldsString.split(',')
+        .map(fieldString => {
+          const fieldParts = fieldString.trim().split(':');
+          console.log('🔍 Field parts:', fieldParts);
+          
+          if (fieldParts.length < 2) {
+            console.log('❌ Invalid field format:', fieldString);
+            return null;
+          }
+          
+          const fieldName = fieldParts[0]?.trim();
+          const fieldType = fieldParts[1]?.trim() as Field['type'];
+          
+          if (!fieldName || !fieldType) {
+            console.log('❌ Missing field name or type:', fieldString);
+            return null;
+          }
+          
+          // Validate field type
+          const validTypes: Field['type'][] = ['string', 'text', 'number', 'date', 'boolean', 'select'];
+          if (!validTypes.includes(fieldType)) {
+            console.log('❌ Invalid field type:', fieldType);
+            return null;
+          }
+          
+          const field: Field = { 
+            name: fieldName, 
+            type: fieldType
+          };
+          
+          // Dodaj options dla select
+          if (field.type === 'select' && fieldParts.length > 2) {
+            field.options = fieldParts.slice(2)
+              .map(opt => opt?.trim())
+              .filter(Boolean);
+          }
+          
+          console.log('✅ Parsed field:', field);
+          return field;
+        })
+        .filter((field): field is Field => field !== null);
+      
+      if (fields.length === 0) {
+        console.log('❌ No valid fields found for table:', tableName);
+        return null;
+      }
+      
+      const table: Table = { name: tableName, fields };
+      console.log('✅ Parsed table:', table);
+      return table;
+    })
+    .filter((table): table is Table => table !== null);
   
+  const result = { tables };
   console.log('📋 Final parsed schema:', result);
   return result;
 };
@@ -60,6 +92,10 @@ export const createVendorApp = async (tag: CreateVendorTag) => {
   try {
     const schema = parseSchema(tag.schema);
     console.log('📊 Schema to create tables:', schema);
+    
+    if (schema.tables.length === 0) {
+      throw new Error('No valid tables found in schema');
+    }
     
     console.log('🔨 Creating tables for slug:', tag.slug);
     await createTables(tag.slug, schema.tables);

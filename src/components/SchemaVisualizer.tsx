@@ -1,3 +1,4 @@
+// src/components/SchemaVisualizer.tsx - FIXED WITH PROPER TYPES
 import React from 'react';
 import { Table, Field } from '../types';
 
@@ -16,6 +17,18 @@ export const SchemaVisualizer: React.FC<SchemaVisualizerProps> = ({ schema, vend
       case 'boolean': return 'bg-yellow-100 text-yellow-800';
       case 'select': return 'bg-pink-100 text-pink-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getFieldSqlType = (type: Field['type']): string => {
+    switch (type) {
+      case 'number': return 'INTEGER';
+      case 'boolean': return 'BOOLEAN';
+      case 'date': return 'DATE';
+      case 'string':
+      case 'text':
+      case 'select':
+      default: return 'TEXT';
     }
   };
 
@@ -63,10 +76,8 @@ export const SchemaVisualizer: React.FC<SchemaVisualizerProps> = ({ schema, vend
                 </div>
                 
                 {/* Fields */}
-                {table.fields.map((field, fieldIndex) => {
-                  const sqlType = field.type === 'number' ? 'INTEGER' : 
-                                 field.type === 'boolean' ? 'BOOLEAN' : 
-                                 field.type === 'date' ? 'DATE' : 'TEXT';
+                {table.fields.map((field) => {
+                  const sqlType = getFieldSqlType(field.type);
                   
                   return (
                     <div key={field.name} className="grid grid-cols-4 gap-2 py-1 border-b border-gray-100">
