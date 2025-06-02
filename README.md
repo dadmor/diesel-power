@@ -1,21 +1,72 @@
-# Multi-Vendor App Generator
+# Multi-Vendor Application Generator
 
-Minimalna aplikacja React + TypeScript + Vite do generowania kompletnych aplikacji CRUD dla różnych vendorów przez chat z LLM.
+Aplikacja do automatycznego generowania kompletnych aplikacji CRUD dla różnych vendorów/klientów poprzez konwersację z AI.
 
-## 🚀 Szybki start
+## 🚀 Jak to działa
 
-1. **Instalacja zależności:**
+1. **Opisujesz potrzeby** w prosty sposób: *"Potrzebuję sklep online"*
+2. **AI analizuje** i generuje schemat aplikacji
+3. **System automatycznie tworzy** tabele w bazie danych i interfejs CRUD
+4. **Gotowa aplikacja** jest dostępna pod unikalnym URL-em
+
+## 🛠️ Stack techniczny
+
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS
+- **Backend**: Node.js + Express + Google Gemini AI
+- **Database**: Supabase (PostgreSQL)
+- **Routing**: React Router v6
+
+## 📋 Wymagania
+
+- Node.js 18+
+- Konto Supabase (darmowe)
+- Google AI Studio API key (darmowy)
+
+## ⚙️ Instalacja i konfiguracja
+
+### 1. Sklonuj repozytorium
 ```bash
-npm install
+git clone <repository-url>
+cd multi-vendor-generator
 ```
 
-2. **Konfiguracja Supabase:**
-   - Stwórz projekt w [Supabase](https://supabase.com)
-   - Skopiuj `.env.example` do `.env`
-   - Wypełnij dane Supabase URL i ANON KEY
+### 2. Zainstaluj dependencje
+```bash
+# Frontend
+npm install
 
-3. **Utworzenie tabeli vendors w Supabase:**
+# Backend (w osobnym terminalu)
+cd backend  # lub gdzie masz server.js
+npm install express cors @google/generative-ai dotenv
+```
+
+### 3. Konfiguracja Supabase
+
+#### A. Utwórz projekt w Supabase
+1. Wejdź na [supabase.com](https://supabase.com)
+2. Utwórz nowy projekt
+3. Skopiuj `URL` i `anon key` z Settings → API
+
+#### B. Wykonaj setup bazy danych
+W Supabase Dashboard → SQL Editor wykonaj:
+
 ```sql
+-- Funkcja do dynamicznego tworzenia tabel
+CREATE OR REPLACE FUNCTION exec_sql(sql TEXT)
+RETURNS TEXT 
+LANGUAGE plpgsql 
+SECURITY DEFINER
+AS $$ 
+BEGIN 
+  EXECUTE sql; 
+  RETURN 'OK';
+EXCEPTION 
+  WHEN OTHERS THEN 
+    RETURN SQLERRM; 
+END; 
+$$;
+
+-- Tabela vendorów
 CREATE TABLE vendors (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   slug TEXT UNIQUE NOT NULL,
@@ -23,146 +74,159 @@ CREATE TABLE vendors (
   schema JSONB NOT NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
-
--- Funkcja pomocnicza do wykonywania SQL (potrzebna do tworzenia tabel)
-CREATE OR REPLACE FUNCTION exec_sql(sql TEXT)
-RETURNS void AS $
-BEGIN
-  EXECUTE sql;
-END;
-$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
-4. **Uruchomienie aplikacji:**
+#### C. Skonfiguruj zmienne środowiskowe
+Utwórz `.env` w root folderze:
+```env
+VITE_SUPABASE_URL=https://twoj-projekt.supabase.co
+VITE_SUPABASE_ANON_KEY=twoj-anon-key
+```
+
+### 4. Konfiguracja Google AI
+
+#### A. Pobierz API key
+1. Wejdź na [aistudio.google.com](https://aistudio.google.com)
+2. Utwórz nowy API key
+3. Skopiuj klucz
+
+#### B. Konfiguracja backend
+Utwórz `.env` w folderze backend:
+```env
+GEMINI_API_KEY=twoj-google-ai-key
+PORT=3001
+```
+
+## 🚀 Uruchomienie
+
+### 1. Uruchom backend (terminal 1)
+```bash
+cd backend
+node server.js
+```
+Powinno pokazać:
+```
+🚀 Server running on http://localhost:3001
+📡 CORS enabled for http://localhost:5173
+🤖 Gemini API ✅ configured
+```
+
+### 2. Uruchom frontend (terminal 2)
 ```bash
 npm run dev
 ```
+Aplikacja będzie dostępna na `http://localhost:5173`
 
-## 💬 Jak używać
+## 📖 Użytkowanie
 
-1. **Otwórz aplikację** w przeglądarce (domyślnie `http://localhost:5173`)
+### 1. Generowanie aplikacji
+1. Otwórz `http://localhost:5173`
+2. W chat wpisz opis potrzeb, np.:
+   - *"Potrzebuję sklep online z produktami i zamówieniami"*
+   - *"CRM do zarządzania klientami i kontaktami"*
+   - *"System zarządzania projektami i zadaniami"*
 
-2. **Opisz swoją aplikację** w chacie, np.:
-   - "Potrzebuję aplikację do zarządzania produktami i zamówieniami"
-   - "Chcę system CRM do klientów i kontaktów"
-   - "Potrzebuję aplikację do zarządzania projektami i zadaniami"
+### 2. AI wygeneruje aplikację
+System automatycznie:
+- Przeanalizuje Twoje potrzeby
+- Wygeneruje schemat bazy danych
+- Utworzy tabele w Supabase
+- Udostępni aplikację pod unikalnym URL
 
-3. **LLM wygeneruje tag** z konfiguracją:
-```xml
-<create_vendor_app name="E-commerce Store" slug="ecommerce-store" schema="products:name:string,price:number,description:text;orders:customer_name:string,total:number,status:select:pending,shipped,delivered">
+### 3. Dostęp do aplikacji
+Po utworzeniu aplikacja będzie dostępna pod:
+```
+http://localhost:5173/nazwa-aplikacji
 ```
 
-4. **System automatycznie utworzy:**
-   - Tabele w bazie danych z prefiksem vendora
-   - Kompletną aplikację CRUD
-   - Czyste UI z Tailwind CSS
-
-5. **Gotowa aplikacja** będzie dostępna pod `/{vendor-slug}`
-
-## 🏗️ Architektura
-
-### Stack techniczny
-- **React + TypeScript + Vite** - szybki development
-- **Tailwind CSS** - styling bez pisania CSS
-- **Supabase** - baza danych + realtime
-- **React Router v6** - routing
-
-### Struktura plików
-```
-src/
-├── App.tsx              # Router + main layout
-├── Chat.tsx            # Chat UI + tag parser  
-├── AppGenerator.tsx    # Generator CRUD na podstawie schema
-├── VendorTemplate.tsx  # Szablon UI dla vendora
-├── supabaseClient.ts   # Supabase config + table creation
-├── types.ts           # TypeScript definitions
-└── main.tsx           # Entry point
-```
-
-### Schema format
-```
-table1:field1:type,field2:type;table2:field1:type,field2:type
-
-Dostępne typy:
-- string, number, text, date, boolean
-- select:option1,option2,option3
-```
-
-## 📋 Przykłady użycia
+## 🎯 Przykłady użycia
 
 ### E-commerce
-```xml
-<create_vendor_app name="Sklep Online" slug="sklep-online" schema="products:name:string,price:number,description:text,stock:number;orders:customer_name:string,total:number,status:select:pending,shipped,delivered">
+```
+Input: "Potrzebuję sklep internetowy"
+Output: Aplikacja z produktami, kategoriami, zamówieniami
+URL: /ecommerce
 ```
 
 ### CRM
-```xml
-<create_vendor_app name="CRM System" slug="crm" schema="clients:name:string,email:string,company:string,status:select:lead,customer;contacts:client_id:number,date:date,notes:text">
+```
+Input: "System CRM dla mojej firmy"
+Output: Aplikacja z klientami, kontaktami, notatkami
+URL: /crm-system
 ```
 
-### Project Management
-```xml
-<create_vendor_app name="Project Manager" slug="pm" schema="projects:name:string,deadline:date,status:select:active,completed;tasks:project_id:number,title:string,priority:select:low,medium,high">
+### Zarządzanie projektami
+```
+Input: "Narzędzie do projektów i zadań"
+Output: Aplikacja z projektami, zadaniami, statusami
+URL: /project-manager
 ```
 
-## 🔧 Customizacja
+## 🔧 Schemat pól
 
-### Dodawanie nowych typów pól
-W `AppGenerator.tsx` w funkcji `parseSchema()` można dodać nowe typy:
+System obsługuje następujące typy pól:
 
-```typescript
-case 'email':
-  sqlType = 'TEXT';
-  // Dodaj walidację email w komponencie formularza
-  break;
+- `string` - krótki tekst
+- `text` - długi tekst (textarea)
+- `number` - liczby
+- `date` - daty
+- `boolean` - true/false
+- `select:opcja1,opcja2` - lista wyboru
+
+## 📁 Struktura projektu
+
+```
+src/
+├── components/
+│   ├── Chat.tsx              # Interface chatu z AI
+│   ├── ConnectionChecker.tsx  # Sprawdzanie połączenia z bazą
+│   └── vendor/
+│       ├── VendorApp.tsx     # Layout aplikacji vendora
+│       ├── VendorList.tsx    # Lista rekordów (CRUD)
+│       └── VendorForm.tsx    # Formularz dodawania/edycji
+├── lib/
+│   ├── generator.ts          # Parser schema i generator tabel
+│   └── supabase.ts          # Klient Supabase
+├── types/
+│   └── index.ts             # Definicje TypeScript
+└── App.tsx                  # Routing i layout główny
 ```
 
-### Modyfikacja UI
-Wszystkie komponenty używają Tailwind CSS. Edytuj klasy w:
-- `Chat.tsx` - interfejs chatu
-- `VendorTemplate.tsx` - dashboard vendora
+## 🛡️ Bezpieczeństwo
 
-### Rozszerzenie funkcjonalności LLM
-W `Chat.tsx` w funkcji `generateResponse()` dodaj nowe wzorce:
+- Tabele są prefiksowane slug-iem vendora (`vendor_products`)
+- Brak RLS - proste prefiksowanie dla izolacji
+- Funkcja `exec_sql` ma `SECURITY DEFINER` - wykonuje się z uprawnieniami właściciela
 
-```typescript
-if (lowerMessage.includes('inventory')) {
-  return `<create_vendor_app name="Inventory System" slug="inventory" schema="...">`;
-}
-```
+## 🐛 Troubleshooting
 
-## 🚢 Deployment
+### Problem: "Could not find function exec_sql"
+**Rozwiązanie**: Wykonaj SQL setup w Supabase Dashboard (punkt 3.B)
 
-### Vercel/Netlify
-```bash
-npm run build
-# Deploy folder 'dist'
-```
+### Problem: "404 Not Found" na vendors table
+**Rozwiązanie**: Wykonaj CREATE TABLE vendors (punkt 3.B)
 
-### Supabase Edge Functions (opcjonalnie)
-Można przenieść logikę generowania do Supabase Edge Functions dla lepszej performance.
+### Problem: Backend niedostępny
+**Rozwiązanie**: 
+1. Sprawdź czy backend działa na porcie 3001
+2. Sprawdź zmienną `GEMINI_API_KEY` w .env
+3. Sprawdź logi backend w terminalu
 
-## 🎯 Roadmap
+### Problem: CORS errors
+**Rozwiązanie**: Upewnij się że frontend działa na porcie 5173
 
-- [ ] Więcej typów pól (file upload, rich text)
-- [ ] Relacje między tabelami (foreign keys)
-- [ ] Export/import danych
-- [ ] Custom branding per vendor
-- [ ] Role-based access control
-- [ ] API endpoints per vendor
+## 📄 Licencja
+
+MIT
 
 ## 🤝 Contributing
 
 1. Fork repository
-2. Stwórz branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Otwórz Pull Request
-
-## 📄 License
-
-MIT License - zobacz [LICENSE](LICENSE) file.
+2. Utwórz feature branch
+3. Commit changes
+4. Push to branch
+5. Create Pull Request
 
 ---
 
-**Stworzono z ❤️ dla szybkiego prototypowania aplikacji biznesowych**
+**Pytania?** Utwórz issue w repozytorium!

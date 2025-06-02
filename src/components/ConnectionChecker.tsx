@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { checkConnection } from "../lib/supabase";
+import { checkConnection, createBaseTables } from "../lib/supabase";
 import { AlertCircle, RefreshCw } from "lucide-react";
 
 export const ConnectionChecker: React.FC<{ children: React.ReactNode }> = ({
@@ -9,19 +9,49 @@ export const ConnectionChecker: React.FC<{ children: React.ReactNode }> = ({
     loading: true,
     error: "",
     ready: false,
+    setupAttempted: false,
   });
 
+  const attemptSetup = async () => {
+    try {
+      setStatus(prev => ({ ...prev, loading: true, error: "" }));
+      await createBaseTables();
+      
+      // Sprawdź ponownie po setup
+      const { hasVendorsTable, hasExecFunction } = await checkConnection();
+      if (!hasVendorsTable || !hasExecFunction) {
+        throw new Error("Setup nie powiódł się - sprawdź uprawnienia bazy");
+      }
+      
+      setStatus({ loading: false, error: "", ready: true, setupAttempted: true });
+    } catch (err: any) {
+      setStatus({ 
+        loading: false, 
+        error: err.message, 
+        ready: false, 
+        setupAttempted: true 
+      });
+    }
+  };
+
   useEffect(() => {
-    checkConnection()
-      .then(({ hasVendorsTable, hasExecFunction }) => {
+    const initCheck = async () => {
+      try {
+        const { hasVendorsTable, hasExecFunction } = await checkConnection();
+        
         if (!hasVendorsTable || !hasExecFunction) {
-          throw new Error("Brak wymaganych tabel/funkcji w bazie");
+          // Automatycznie spróbuj utworzyć
+          await attemptSetup();
+        } else {
+          setStatus({ loading: false, error: "", ready: true, setupAttempted: false });
         }
-        setStatus({ loading: false, error: "", ready: true });
-      })
-      .catch((err) =>
-        setStatus({ loading: false, error: err.message, ready: false })
-      );
+      } catch (err: any) {
+        // Jeśli check nie działa, spróbuj setup
+        await attemptSetup();
+      }
+    };
+
+    initCheck();
   }, []);
 
   if (status.loading) {
@@ -29,7 +59,9 @@ export const ConnectionChecker: React.FC<{ children: React.ReactNode }> = ({
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center space-y-3">
           <div className="animate-spin rounded-full h-12 w-12 border-2 border-slate-200 border-t-blue-600"></div>
-          <p className="text-sm text-slate-600">Sprawdzanie połączenia...</p>
+          <p className="text-sm text-slate-600">
+            {status.setupAttempted ? "Konfigurowanie bazy..." : "Sprawdzanie połączenia..."}
+          </p>
         </div>
       </div>
     );
@@ -54,7 +86,7 @@ export const ConnectionChecker: React.FC<{ children: React.ReactNode }> = ({
 
           <div className="mb-6">
             <h3 className="text-lg font-medium text-slate-900 mb-3">
-              Wymagane polecenia SQL:
+              Wymagane polecenia SQL (wykonaj w Supabase Dashboard):
             </h3>
             <pre className="bg-slate-900 text-green-400 p-4 rounded-lg text-sm overflow-x-auto font-mono leading-relaxed">
               {`CREATE TABLE vendors (
@@ -72,13 +104,22 @@ EXCEPTION WHEN OTHERS THEN RETURN SQLERRM; END; $$;`}
             </pre>
           </div>
 
-          <button
-            onClick={() => window.location.reload()}
-            className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span>Sprawdź ponownie</span>
-          </button>
+          <div className="flex space-x-4">
+            <button
+              onClick={attemptSetup}
+              className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
+              <span>Spróbuj automatycznego setup</span>
+            </button>
+            
+            <button
+              onClick={() => window.location.reload()}
+              className="inline-flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span>Sprawdź ponownie</span>
+            </button>
+          </div>
         </div>
       </div>
     );

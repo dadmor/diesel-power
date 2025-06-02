@@ -4,6 +4,7 @@ import { Routes, Route, Link } from 'react-router-dom';
 import { Vendor } from '../../types';
 import { VendorList } from './VendorList';
 import { VendorForm } from './VendorForm';
+import { createTableName } from '../../lib/utils';
 
 interface VendorAppProps {
   vendor: Vendor;
@@ -64,7 +65,7 @@ export const VendorApp: React.FC<VendorAppProps> = ({ vendor }) => {
             } />
             
             {vendor.schema.tables.map(table => {
-              const tableName = `${vendor.slug}_${table.name}`;
+              const tableName = createTableName(vendor.slug, table.name);
               return (
                 <React.Fragment key={table.name}>
                   <Route 

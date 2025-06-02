@@ -1,5 +1,6 @@
 // src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js';
+import { createTableName } from './utils';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -77,24 +78,47 @@ export async function getVendors() {
   return data || [];
 }
 
-// Tworzenie tabel vendora
+// Tworzenie tabel vendora - Z DEBUGIEM
 export async function createTables(slug: string, tables: Array<{name: string, fields: Array<{name: string, type: string}>}>) {
+  console.log('🔨 createTables called with:', { slug, tables });
+  
   const createStatements = tables.map(table => {
-    const tableName = `${slug}_${table.name}`;
+    const tableName = createTableName(slug, table.name);
+    console.log(`📋 Creating table: ${tableName}`);
+    
     const columns = table.fields.map(field => {
       const type = field.type === 'number' ? 'INTEGER' : 
                    field.type === 'boolean' ? 'BOOLEAN' : 
                    field.type === 'date' ? 'DATE' : 'TEXT';
+      console.log(`  - Field: ${field.name} (${field.type} → ${type})`);
       return `${field.name} ${type}`;
     }).join(', ');
     
-    return `CREATE TABLE IF NOT EXISTS ${tableName} (
+    const sql = `CREATE TABLE IF NOT EXISTS ${tableName} (
       id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
       ${columns},
       created_at TIMESTAMP DEFAULT NOW()
     );`;
+    
+    console.log(`📝 Generated SQL for ${tableName}:`, sql);
+    return sql;
   }).join('\n');
 
-  const { error } = await supabase.rpc('exec_sql', { sql: createStatements });
-  if (error) throw new Error(`Table creation failed: ${error.message}`);
+  console.log('🚀 Full SQL to execute:', createStatements);
+
+  const { data, error } = await supabase.rpc('exec_sql', { sql: createStatements });
+  
+  console.log('📡 Supabase RPC response:', { data, error });
+  
+  if (error) {
+    console.error('❌ SQL execution failed:', error);
+    throw new Error(`Table creation failed: ${error.message}`);
+  }
+  
+  if (data && data !== 'OK') {
+    console.error('❌ SQL returned error:', data);
+    throw new Error(`SQL error: ${data}`);
+  }
+  
+  console.log('✅ Tables created successfully');
 }
