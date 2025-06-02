@@ -1,4 +1,4 @@
-// src/lib/supabase.ts - FIXED WITH PROPER TYPES
+// src/lib/supabase.ts - KOMPLETNY PLIK
 import { createClient } from "@supabase/supabase-js";
 import { createTableName } from "./utils";
 import { Table, Field } from "../types";
@@ -116,7 +116,7 @@ const fieldTypeToSql = (fieldType: Field["type"]): string => {
   }
 };
 
-// Tworzenie tabel vendora - FIXED WITH PROPER TYPES
+// Tworzenie tabel vendora
 export async function createTables(slug: string, tables: Table[]) {
   console.log("🔨 createTables called with:", { slug, tables });
 
@@ -163,4 +163,40 @@ export async function createTables(slug: string, tables: Table[]) {
   }
 
   console.log("✅ Tables created successfully");
+}
+
+// Update vendor schema
+export async function updateVendorSchema(vendorId: string, schema: { tables: Table[] }) {
+  const { data, error } = await supabase
+    .from("vendors")
+    .update({ schema })
+    .eq("id", vendorId)
+    .select()
+    .single();
+  
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Delete vendor (opcjonalnie)
+export async function deleteVendor(vendorId: string) {
+  const { error } = await supabase
+    .from("vendors")
+    .delete()
+    .eq("id", vendorId);
+  
+  if (error) throw new Error(error.message);
+  return { success: true };
+}
+
+// Get vendor by ID
+export async function getVendorById(vendorId: string) {
+  const { data, error } = await supabase
+    .from("vendors")
+    .select("*")
+    .eq("id", vendorId)
+    .single();
+  
+  if (error) throw new Error(error.message);
+  return data;
 }
