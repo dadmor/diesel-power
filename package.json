@@ -10,8 +10,9 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
-    "@refinedev/core": "^4.47.1",
-    "@refinedev/supabase": "^5.9.3",
+    "@refinedev/core": "^4.57.9",
+    "@refinedev/react-router-v6": "^4.6.2",
+    "@refinedev/supabase": "^5.9.8",
     "@supabase/supabase-js": "^2.38.4",
     "lucide-react": "^0.511.0",
     "react": "^18.2.0",
