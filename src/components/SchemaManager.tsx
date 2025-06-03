@@ -1,12 +1,9 @@
-// src/components/SchemaManager.tsx - Simplified without expandable lists
+// ===== src/components/SchemaManager.tsx =====
 import React, { useState } from 'react';
 import { Vendor, Table, Field } from '../types';
 import { updateVendorSchema, createTables } from '../lib/supabase';
 import { SimpleSchemaPreview } from './SimpleSchemaPreview';
-import { 
-  ArrowLeft, Save, Plus, Trash2, Database, 
-  Edit3, Eye
-} from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Database, Edit3, Eye } from 'lucide-react';
 
 interface SchemaManagerProps {
   vendor: Vendor;
@@ -25,7 +22,6 @@ export const SchemaManager: React.FC<SchemaManagerProps> = ({ vendor, onSave, on
 
   const selectedTable = selectedTableIndex !== null ? schema.tables[selectedTableIndex] : null;
 
-  // Validation
   const validate = () => {
     const errs: string[] = [];
     if (schema.tables.length === 0) errs.push('Wymagana przynajmniej jedna tabela');
@@ -41,7 +37,6 @@ export const SchemaManager: React.FC<SchemaManagerProps> = ({ vendor, onSave, on
     return errs;
   };
 
-  // Table operations
   const addTable = () => {
     const newTable: Table = {
       name: `table_${schema.tables.length + 1}`,
@@ -66,7 +61,6 @@ export const SchemaManager: React.FC<SchemaManagerProps> = ({ vendor, onSave, on
     else if (selectedTableIndex !== null && selectedTableIndex > index) setSelectedTableIndex(selectedTableIndex - 1);
   };
 
-  // Field operations
   const addField = (tableIndex: number) => {
     const table = schema.tables[tableIndex];
     updateTable(tableIndex, {
@@ -87,7 +81,6 @@ export const SchemaManager: React.FC<SchemaManagerProps> = ({ vendor, onSave, on
     updateTable(tableIndex, { fields: table.fields.filter((_, i) => i !== fieldIndex) });
   };
 
-  // Save
   const handleSave = async () => {
     const validationErrors = validate();
     setErrors(validationErrors);
@@ -106,93 +99,95 @@ export const SchemaManager: React.FC<SchemaManagerProps> = ({ vendor, onSave, on
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <button onClick={onCancel} className="flex items-center space-x-2 text-gray-600 hover:text-gray-900">
-              <ArrowLeft className="h-5 w-5" />
-              <span>Powrót</span>
-            </button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{vendor.name}</h1>
-              <p className="text-gray-600">/{vendor.slug}</p>
+      <header className="bg-white/70 backdrop-blur-sm border-b border-slate-200/60">
+        <div className="max-w-7xl mx-auto px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <button onClick={onCancel} className="flex items-center space-x-2 text-slate-600 hover:text-slate-900 transition-colors duration-200">
+                <ArrowLeft className="h-5 w-5" />
+                <span className="font-medium">Powrót</span>
+              </button>
+              <div>
+                <h1 className="text-3xl font-light tracking-tight text-slate-900">{vendor.name}</h1>
+                <p className="text-slate-600 text-sm">/{vendor.slug}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setMode(mode === 'edit' ? 'view' : 'edit')}
+                className={`flex items-center space-x-2 px-6 py-3 rounded-2xl font-medium transition-all duration-200 ${
+                  mode === 'edit' ? 'bg-slate-900 text-white' : 'bg-white/60 text-slate-700 border border-slate-200'
+                }`}
+              >
+                {mode === 'edit' ? <Eye className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
+                <span>{mode === 'edit' ? 'Podgląd' : 'Edytuj'}</span>
+              </button>
+              {mode === 'edit' && (
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white px-6 py-3 rounded-2xl font-medium transition-all duration-200"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>{saving ? 'Zapisywanie...' : 'Zapisz'}</span>
+                </button>
+              )}
             </div>
           </div>
-          
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setMode(mode === 'edit' ? 'view' : 'edit')}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium ${
-                mode === 'edit' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
-              }`}
-            >
-              {mode === 'edit' ? <Eye className="h-4 w-4" /> : <Edit3 className="h-4 w-4" />}
-              <span>{mode === 'edit' ? 'Podgląd' : 'Edytuj'}</span>
-            </button>
-            {mode === 'edit' && (
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-medium"
-              >
-                <Save className="h-4 w-4" />
-                <span>{saving ? 'Zapisywanie...' : 'Zapisz'}</span>
-              </button>
-            )}
-          </div>
         </div>
-      </div>
+      </header>
 
       {/* Errors */}
       {errors.length > 0 && (
-        <div className="px-6 py-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <h3 className="text-red-800 font-medium mb-2">Błędy:</h3>
-            <ul className="text-red-700 text-sm space-y-1">
+        <div className="max-w-7xl mx-auto px-8 py-5">
+          <div className="bg-red-50/80 border border-red-200/60 rounded-2xl p-5 backdrop-blur-sm">
+            <h3 className="text-red-800 font-medium mb-3 text-sm">Błędy:</h3>
+            <ul className="text-red-700 text-xs space-y-1">
               {errors.map((error, i) => <li key={i}>• {error}</li>)}
             </ul>
           </div>
         </div>
       )}
 
-      <div className="px-6 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           
           {/* Tables Navigation */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Tabele ({schema.tables.length})</h2>
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm">
+            <div className="p-6 border-b border-slate-200/60 flex items-center justify-between">
+              <h2 className="text-lg font-light text-slate-900">Tabele ({schema.tables.length})</h2>
               {mode === 'edit' && (
-                <button onClick={addTable} className="text-blue-600 hover:text-blue-700">
+                <button onClick={addTable} className="text-slate-600 hover:text-slate-900 transition-colors duration-200">
                   <Plus className="h-5 w-5" />
                 </button>
               )}
             </div>
             
-            <div className="divide-y">
+            <div className="divide-y divide-slate-200/60">
               {schema.tables.map((table, index) => (
                 <div 
                   key={index}
-                  className={`p-4 cursor-pointer hover:bg-gray-50 ${
-                    selectedTableIndex === index ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+                  className={`p-5 cursor-pointer hover:bg-slate-50/50 transition-colors duration-150 ${
+                    selectedTableIndex === index ? 'bg-slate-50/50 border-r-2 border-slate-900' : ''
                   }`}
                   onClick={() => setSelectedTableIndex(index)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                      <Database className="h-5 w-5 text-gray-400" />
+                      <Database className="h-5 w-5 text-slate-400" />
                       <div>
-                        <p className="font-medium">{table.name}</p>
-                        <p className="text-sm text-gray-500">{table.fields.length} pól</p>
+                        <p className="font-medium text-slate-900 text-sm">{table.name}</p>
+                        <p className="text-xs text-slate-500">{table.fields.length} pól</p>
                       </div>
                     </div>
                     
                     {mode === 'edit' && (
                       <button
                         onClick={(e) => { e.stopPropagation(); deleteTable(index); }}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-500 hover:text-red-700 transition-colors duration-150"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -202,61 +197,59 @@ export const SchemaManager: React.FC<SchemaManagerProps> = ({ vendor, onSave, on
               ))}
               
               {schema.tables.length === 0 && (
-                <div className="p-8 text-center text-gray-500">
-                  <Database className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                  <p>Brak tabel</p>
+                <div className="p-12 text-center text-slate-500">
+                  <Database className="h-12 w-12 mx-auto mb-3 text-slate-400 opacity-60" />
+                  <p className="text-sm">Brak tabel</p>
                 </div>
               )}
             </div>
           </div>
 
           {/* Content Area */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             {mode === 'view' ? (
-              /* View Mode - Use SimpleSchemaPreview */
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-xl font-semibold mb-4">Podgląd Schema</h3>
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm p-8">
+                <h3 className="text-xl font-light text-slate-900 mb-6">Podgląd Schema</h3>
                 <SimpleSchemaPreview schema={schema} vendorName={vendor.name} />
               </div>
             ) : selectedTable ? (
-              /* Edit Mode */
-              <div className="bg-white rounded-lg shadow">
-                <div className="p-6 border-b">
-                  <h3 className="text-xl font-semibold">Edytuj: {selectedTable.name}</h3>
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm">
+                <div className="p-8 border-b border-slate-200/60">
+                  <h3 className="text-xl font-light text-slate-900">Edytuj: {selectedTable.name}</h3>
                 </div>
 
-                <div className="p-6">
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium mb-2">Nazwa tabeli</label>
+                <div className="p-8">
+                  <div className="mb-8">
+                    <label className="block text-sm font-medium text-slate-700 mb-3">Nazwa tabeli</label>
                     <input
                       type="text"
                       value={selectedTable.name}
                       onChange={(e) => updateTable(selectedTableIndex!, { name: e.target.value })}
-                      className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-5 py-4 bg-white/80 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm transition-all duration-200"
                     />
                   </div>
 
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-lg font-medium">Pola</h4>
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-lg font-light text-slate-900">Pola</h4>
                     <button
                       onClick={() => addField(selectedTableIndex!)}
-                      className="bg-blue-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-700"
+                      className="bg-slate-900 text-white px-5 py-3 rounded-xl text-sm hover:bg-slate-800 transition-all duration-200 flex items-center space-x-2"
                     >
-                      <Plus className="h-4 w-4 inline mr-1" />
-                      Pole
+                      <Plus className="h-4 w-4" />
+                      <span>Pole</span>
                     </button>
                   </div>
 
-                  <div className="space-y-4">
+                  <div className="space-y-5">
                     {selectedTable.fields.map((field, i) => (
-                      <div key={i} className="p-4 border rounded-lg">
-                        <div className="grid grid-cols-3 gap-4">
+                      <div key={i} className="p-6 border border-slate-200/60 rounded-2xl bg-white/40">
+                        <div className="grid grid-cols-3 gap-5">
                           <input
                             type="text"
                             value={field.name}
                             onChange={(e) => updateField(selectedTableIndex!, i, { name: e.target.value })}
                             placeholder="Nazwa pola"
-                            className="p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                            className="px-4 py-3 bg-white/80 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm transition-all duration-200"
                           />
                           <select
                             value={field.type}
@@ -264,7 +257,7 @@ export const SchemaManager: React.FC<SchemaManagerProps> = ({ vendor, onSave, on
                               type: e.target.value as Field['type'],
                               options: e.target.value === 'select' ? ['opcja1', 'opcja2'] : undefined
                             })}
-                            className="p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                            className="px-4 py-3 bg-white/80 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm transition-all duration-200"
                           >
                             {fieldTypes.map(type => (
                               <option key={type} value={type}>{type}</option>
@@ -272,9 +265,9 @@ export const SchemaManager: React.FC<SchemaManagerProps> = ({ vendor, onSave, on
                           </select>
                           <button
                             onClick={() => deleteField(selectedTableIndex!, i)}
-                            className="text-red-600 hover:text-red-800 border border-red-300 rounded p-2"
+                            className="text-red-600 hover:text-red-800 hover:bg-red-50 border border-red-300 rounded-xl px-4 py-3 transition-all duration-200"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4 mx-auto" />
                           </button>
                         </div>
                         
@@ -286,7 +279,7 @@ export const SchemaManager: React.FC<SchemaManagerProps> = ({ vendor, onSave, on
                               options: e.target.value.split(',').map(opt => opt.trim()).filter(Boolean)
                             })}
                             placeholder="opcja1, opcja2, opcja3"
-                            className="w-full mt-2 p-2 border rounded focus:ring-2 focus:ring-blue-500"
+                            className="w-full mt-4 px-4 py-3 bg-white/80 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm transition-all duration-200"
                           />
                         )}
                       </div>
@@ -295,11 +288,10 @@ export const SchemaManager: React.FC<SchemaManagerProps> = ({ vendor, onSave, on
                 </div>
               </div>
             ) : (
-              /* No table selected */
-              <div className="bg-white rounded-lg shadow p-12 text-center">
-                <Eye className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Wybierz tabelę</h3>
-                <p className="text-gray-500">Kliknij tabelę z lewej strony aby ją edytować</p>
+              <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm p-16 text-center">
+                <Eye className="h-16 w-16 text-slate-400 mx-auto mb-6 opacity-60" />
+                <h3 className="text-xl font-light text-slate-900 mb-3">Wybierz tabelę</h3>
+                <p className="text-slate-500 text-sm">Kliknij tabelę z lewej strony aby ją edytować</p>
               </div>
             )}
           </div>

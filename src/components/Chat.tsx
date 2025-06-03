@@ -1,9 +1,8 @@
-// src/components/Chat.tsx
+// ===== src/components/Chat.tsx =====
 import React, { useState } from 'react';
 import { createVendorApp, parseSchema } from '../lib/generator';
 import { CreateVendorTag } from '../types';
 import { SimpleSchemaPreview } from './SimpleSchemaPreview';
-
 
 interface Message {
   role: 'user' | 'assistant';
@@ -49,7 +48,6 @@ export const Chat: React.FC = () => {
     try {
       const response = await generateResponse(userMessage);
       const vendorTag = parseMessage(response);
-
       setMessages(prev => [...prev, { role: 'assistant', content: response, vendorTag }]);
 
       if (vendorTag) {
@@ -72,95 +70,106 @@ export const Chat: React.FC = () => {
     setIsLoading(false);
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b px-6 py-4">
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
-          <h1 className="text-2xl font-bold text-gray-900">Generator Aplikacji</h1>
-          <button
-            onClick={() => window.location.href = '/dashboard'}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            ← Powrót do listy
-          </button>
-        </div>
-      </div>
+  const lastVendorMessage = [...messages].reverse().find(m => m.vendorTag);
 
-      <div className="max-w-6xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Chat Panel */}
-        <div className="bg-white rounded-lg shadow p-6 flex flex-col">
-          <div className="flex-1 overflow-y-auto space-y-4 mb-6">
-            {messages.map((message, index) => (
-              <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[80%] p-4 rounded-lg whitespace-pre-wrap ${
-                  message.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100'
-                }`}>
-                  <p>{message.content}</p>
-                  {message.vendorTag && (
-                    <div className="mt-3 p-3 bg-green-100 border border-green-300 rounded text-gray-900">
-                      <strong>Generuję:</strong> {message.vendorTag.name}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-gray-100 p-4 rounded-lg">
-                  <p>Myślę... 🤖</p>
-                </div>
-              </div>
-            )}
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Header with golden ratio proportions */}
+      <header className="bg-white/70 backdrop-blur-sm border-b border-slate-200/60">
+        <div className="max-w-7xl mx-auto px-8 py-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-light tracking-tight text-slate-900">Generator Aplikacji</h1>
+            <button
+              onClick={() => window.location.href = '/dashboard'}
+              className="text-slate-600 hover:text-slate-900 transition-colors duration-200 text-sm font-medium"
+            >
+              ← Panel
+            </button>
           </div>
-          
-          <form onSubmit={handleSubmit}>
-            <div className="flex space-x-3">
+        </div>
+      </header>
+
+      <div className="max-w-7xl mx-auto p-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
+        {/* Chat Panel - 3 columns (golden ratio) */}
+        <div className="lg:col-span-3 bg-white/60 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm">
+          <div className="h-[70vh] flex flex-col p-8">
+            <div className="flex-1 overflow-y-auto space-y-6 mb-8">
+              {messages.map((message, index) => (
+                <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[75%] px-6 py-4 rounded-2xl ${
+                    message.role === 'user' 
+                      ? 'bg-slate-900 text-white shadow-lg' 
+                      : 'bg-white border border-slate-200 text-slate-900 shadow-sm'
+                  }`}>
+                    <p className="text-sm leading-relaxed">{message.content}</p>
+                    {message.vendorTag && (
+                      <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-slate-700">
+                        <span className="text-xs font-medium text-emerald-700">Generuję:</span>
+                        <p className="text-sm mt-1">{message.vendorTag.name}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-slate-200 px-6 py-4 rounded-2xl shadow-sm">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse delay-100"></div>
+                      <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse delay-200"></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <form onSubmit={handleSubmit} className="flex space-x-4">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Opisz swoją aplikację..."
-                className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-6 py-4 bg-white/80 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent text-sm transition-all duration-200"
                 disabled={isLoading}
               />
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg disabled:opacity-50"
+                className="bg-slate-900 hover:bg-slate-800 text-white px-8 py-4 rounded-2xl disabled:opacity-50 transition-all duration-200 text-sm font-medium"
               >
                 Wyślij
               </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
 
-        {/* Schema Preview Panel */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Podgląd Schema</h2>
-          {(() => {
-            const lastVendorMessage = [...messages].reverse().find(m => m.vendorTag);
-            if (!lastVendorMessage?.vendorTag) {
-              return (
-                <div className="text-center text-gray-500 py-12">
-                  <div className="text-5xl mb-4">📊</div>
-                  <p>Schema aplikacji pojawi się tutaj po wygenerowaniu</p>
-                </div>
-              );
-            }
-            
-            try {
-              const schema = parseSchema(lastVendorMessage.vendorTag.schema);
-              return <SimpleSchemaPreview schema={schema} vendorName={lastVendorMessage.vendorTag.name} />;
-            } catch (error) {
-              return (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <p className="text-red-800">Błąd parsowania schema:</p>
-                  <pre className="mt-2 text-sm text-red-600">{String(error)}</pre>
-                </div>
-              );
-            }
-          })()}
+        {/* Schema Preview Panel - 2 columns (golden ratio) */}
+        <div className="lg:col-span-2 bg-white/60 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm">
+          <div className="p-8">
+            <h2 className="text-xl font-light text-slate-900 mb-6">Podgląd Schema</h2>
+            {!lastVendorMessage?.vendorTag ? (
+              <div className="text-center text-slate-500 py-16">
+                <div className="text-4xl mb-4 opacity-60">📊</div>
+                <p className="text-sm">Schema pojawi się po wygenerowaniu</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {(() => {
+                  try {
+                    const schema = parseSchema(lastVendorMessage.vendorTag.schema);
+                    return <SimpleSchemaPreview schema={schema} vendorName={lastVendorMessage.vendorTag.name} />;
+                  } catch (error) {
+                    return (
+                      <div className="bg-red-50/80 border border-red-200/60 rounded-xl p-4">
+                        <p className="text-red-800 text-sm">Błąd parsowania schema</p>
+                      </div>
+                    );
+                  }
+                })()}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
