@@ -1,4 +1,4 @@
-// src/App.tsx
+// src/App.tsx (Updated)
 import React from 'react';
 import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
 import { Chat } from './components/Chat';
@@ -29,7 +29,7 @@ const VendorWrapper: React.FC = () => {
   return <VendorApp vendor={vendor} />;
 };
 
-// Wrapper for editing vendor by ID
+// Wrapper for editing vendor by ID (manual schema editor)
 const EditVendorWrapper: React.FC = () => {
   const { vendorId } = useParams<{ vendorId: string }>();
   const [vendor, setVendor] = React.useState<Vendor | null>(null);
@@ -55,6 +55,31 @@ const EditVendorWrapper: React.FC = () => {
   );
 };
 
+// Wrapper for editing vendor via Chat/LLM
+const ChatEditWrapper: React.FC = () => {
+  const { vendorId } = useParams<{ vendorId: string }>();
+  const [vendor, setVendor] = React.useState<Vendor | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!vendorId) return;
+    getVendorById(vendorId)
+      .then(setVendor)
+      .catch(() => setVendor(null))
+      .finally(() => setLoading(false));
+  }, [vendorId]);
+
+  if (loading) return <div className="min-h-screen bg-gray-100 flex items-center justify-center">Ładowanie...</div>;
+  if (!vendor) return <div className="min-h-screen bg-gray-100 flex items-center justify-center">Aplikacja nie znaleziona</div>;
+  
+  return (
+    <Chat 
+      editingVendor={vendor}
+      onSave={() => window.location.href = '/dashboard'}
+    />
+  );
+};
+
 const App: React.FC = () => (
   <ConnectionChecker>
     <BrowserRouter>
@@ -63,6 +88,7 @@ const App: React.FC = () => (
         <Route path="/dashboard" element={<Dashboard onCreateNew={() => window.location.href = '/new-by-chat'} onEditApp={(vendor) => window.location.href = `/edit/${vendor.id}`} />} />
         <Route path="/new-by-chat" element={<Chat />} />
         <Route path="/edit/:vendorId" element={<EditVendorWrapper />} />
+        <Route path="/edit-chat/:vendorId" element={<ChatEditWrapper />} />
         <Route path="/:vendorSlug/*" element={<VendorWrapper />} />
       </Routes>
     </BrowserRouter>
