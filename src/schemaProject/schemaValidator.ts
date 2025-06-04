@@ -3,7 +3,6 @@ import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import { PROJECT_SCHEMA, SESSION_SCHEMA } from './projectSchemas';
 
-
 class SchemaValidator {
   private ajv: Ajv;
 
@@ -17,10 +16,21 @@ class SchemaValidator {
   }
 
   validateProject(data: any) {
+    // Pozwól na puste schema layers
+    const dataToValidate = {
+      ...data,
+      schema: {
+        concept: data.schema?.concept || null,
+        database: data.schema?.database || null,
+        ui: data.schema?.ui || null,
+        refine: data.schema?.refine || null
+      }
+    };
+
     const validate = this.ajv.getSchema('project');
     if (!validate) throw new Error('Schema not found');
     
-    const valid = validate(data);
+    const valid = validate(dataToValidate);
     if (!valid) {
       return {
         valid: false,

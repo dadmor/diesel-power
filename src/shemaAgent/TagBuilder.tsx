@@ -1,10 +1,11 @@
-// src/shemaAgent/TagBuilder.tsx - ULTRA PROSTY z localStorage
+// src/shemaAgent/TagBuilder.tsx - Z SchemaProjectManager
 
 import React, { useState, useEffect } from "react";
-import { Message, LayerType } from "./types";
+import { Message, LayerType, SchemaState } from "./types";
 import { parseTags, processTag } from "./schemaProcessor";
 import { sendToGemini } from "./apiService";
 import { ChatInput, LayerTabs, MessageList, SchemaDisplay } from "./components";
+import SchemaProjectManager from "../schemaProject/SchemaProjectManager";
 import { LAYERS_CONFIG, DEFAULT_SCHEMA_STATE } from "./LAYERS";
 
 const LAYERS = Object.entries(LAYERS_CONFIG).map(([id, config]) => ({
@@ -50,7 +51,7 @@ const TagBuilder: React.FC = () => {
   const initialData = getInitialData();
   
   const [currentLayer, setCurrentLayer] = useState<LayerType>(initialData.currentLayer);
-  const [schema, setSchema] = useState(initialData.schema);
+  const [schema, setSchema] = useState<SchemaState>(initialData.schema);
   const [messages, setMessages] = useState<Message[]>(initialData.messages);
   const [input, setInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -138,6 +139,33 @@ const TagBuilder: React.FC = () => {
     setLoading(false);
   };
 
+  // Handler dla wczytania projektu z bazy
+  const handleProjectLoad = (projectSchema: SchemaState) => {
+    setSchema(projectSchema);
+    setCurrentLayer("concept");
+    
+    // Dodaj wiadomość o wczytaniu
+    setMessages([{
+      id: Date.now(),
+      text: "Projekt został wczytany z bazy danych. Możesz kontynuować edycję.",
+      type: "ai",
+      tags: []
+    }]);
+  };
+
+  // Handler dla resetu
+  const handleReset = () => {
+    localStorage.removeItem('schema_session');
+    setSchema(DEFAULT_SCHEMA_STATE);
+    setCurrentLayer("concept");
+    setMessages([{
+      id: 1,
+      text: getDefaultMessage("concept"),
+      type: "ai",
+      tags: []
+    }]);
+  };
+
   return (
     <div className="h-screen bg-gray-50 p-4">
       <div className="h-full flex gap-6">
@@ -159,15 +187,13 @@ const TagBuilder: React.FC = () => {
                 <span className="text-sm text-gray-500">Auto-save</span>
               </div>
               
-              <button
-                onClick={() => {
-                  localStorage.removeItem('schema_session');
-                  window.location.reload();
-                }}
-                className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-              >
-                🆕 Reset
-              </button>
+              {/* Nowy manager projektów */}
+              <SchemaProjectManager
+                schema={schema}
+                currentLayer={currentLayer}
+                onProjectLoad={handleProjectLoad}
+                onReset={handleReset}
+              />
             </div>
             
             <LayerTabs
