@@ -14,6 +14,8 @@
     "@refinedev/react-router-v6": "^4.6.2",
     "@refinedev/supabase": "^5.9.8",
     "@supabase/supabase-js": "^2.38.4",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "lucide-react": "^0.511.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
