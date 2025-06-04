@@ -2,6 +2,8 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import TagBuilder from "./shemaAgent/TagBuilder";
 import VendorApp from './vendorApp/VendorApp';
+import PanelApp from './appsPanel/panel';
+
 
 
 function App() {
@@ -9,7 +11,7 @@ function App() {
     <Router>
       <Routes>
         {/* Generator (Twój istniejący TagBuilder) */}
-        <Route path="/" element={<TagBuilder />} />
+        <Route path="/" element={<PanelApp/>} />
         <Route path="/generator" element={<TagBuilder />} />
         
         {/* Vendor Apps - dynamiczne routing */}
