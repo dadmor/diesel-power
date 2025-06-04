@@ -100,4 +100,4 @@ React + TypeScript + Supabase + Google AI
       relations: [{ from: 'clients', to: 'projects', type: 'one-to-many' }],
       roles: []
     }
-  },
+  },# diesel-power
