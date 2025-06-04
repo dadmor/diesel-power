@@ -435,7 +435,7 @@ const VendorForm: React.FC<{
               value={formData.slug}
               onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
               required
-              pattern="[a-z0-9-]+"
+              pattern="[a-z0-9\\-]+"
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="helpdesk-app"
             />
