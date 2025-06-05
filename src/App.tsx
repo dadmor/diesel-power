@@ -4,6 +4,7 @@ import { SupabaseProvider } from './vendor_app/context/SupabaseProvider'
 import { VendorProvider } from './vendor_app/context/VendorContext'
 import { VendorForm } from './vendor_app/components/VendorForm'
 import { VendorList } from './vendor_app/components/VendorList'
+import TagBuilder from './shemaAgent/TagBuilder'
 
 const App: React.FC = () => {
   return (
@@ -14,6 +15,7 @@ const App: React.FC = () => {
           <VendorForm />
           <VendorList />
         </div>
+        <TagBuilder/>
       </VendorProvider>
     </SupabaseProvider>
   )

@@ -5,7 +5,6 @@ import { Message, LayerType, SchemaState } from "./types";
 import { parseTags, processTag } from "./schemaProcessor";
 import { sendToGemini } from "./apiService";
 import { ChatInput, LayerTabs, MessageList, SchemaDisplay } from "./components";
-import SchemaProjectManager from "../schemaProject/SchemaProjectManager";
 import { LAYERS_CONFIG, DEFAULT_SCHEMA_STATE } from "./LAYERS";
 
 const LAYERS = Object.entries(LAYERS_CONFIG).map(([id, config]) => ({
@@ -187,13 +186,7 @@ const TagBuilder: React.FC = () => {
                 <span className="text-sm text-gray-500">Auto-save</span>
               </div>
               
-              {/* Nowy manager projektów */}
-              <SchemaProjectManager
-                schema={schema}
-                currentLayer={currentLayer}
-                onProjectLoad={handleProjectLoad}
-                onReset={handleReset}
-              />
+              
             </div>
             
             <LayerTabs

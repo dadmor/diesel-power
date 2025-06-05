@@ -25,9 +25,9 @@ export const VendorProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setLoading(true)
     setError(null)
     try {
-      // Pobieramy tylko id, name i slug
+      // Usunięto typ generyczny - Supabase automatycznie wywnioskuje typ
       const { data, error } = await supabase
-        .from<Vendor>('vendors')
+        .from('vendors')
         .select('id, name, slug')
         .order('created_at', { ascending: false })
       if (error) {
@@ -98,7 +98,7 @@ export const VendorProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     setError(null)
     try {
       const { data, error } = await supabase
-        .from<Vendor>('vendors')
+        .from('vendors')
         .select('*')
         .eq('id', id)
         .single()
@@ -117,7 +117,6 @@ export const VendorProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   useEffect(() => {
     fetchVendors()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
