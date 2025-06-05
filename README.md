@@ -190,34 +190,36 @@ React + TypeScript + Supabase + Google AI
 
 ```jsonc
 {
-  id: '1',
-  name: 'Aplikacja Budowy Domów',
-  slug: 'house-building',
-  created_at: '2024-01-15T10:00:00Z',
-  schema: {
-    name: 'Aplikacja Budowy Domów',
-    slug: 'house-building',
-    tables: [
-      { 
-        name: 'projects', 
-        fields: [
-          { name: 'title', type: 'string' },
-          { name: 'address', type: 'string' },
-          { name: 'status', type: 'string' },
-          { name: 'client_id', type: 'number' }
-        ] 
+  "id": "1",
+  "name": "Aplikacja Budowy Domów",
+  "slug": "house-building",
+  "created_at": "2024-01-15T10:00:00Z",
+  "schema": {
+    "name": "Aplikacja Budowy Domów",
+    "slug": "house-building",
+    "tables": [
+      {
+        "name": "projects",
+        "fields": [
+          { "name": "title",     "type": "string" },
+          { "name": "address",   "type": "string" },
+          { "name": "status",    "type": "string" },
+          { "name": "client_id", "type": "number" }
+        ]
       },
-      { 
-        name: 'clients', 
-        fields: [
-          { name: 'name', type: 'string' },
-          { name: 'email', type: 'string' },
-          { name: 'phone', type: 'string' }
-        ] 
+      {
+        "name": "clients",
+        "fields": [
+          { "name": "name",  "type": "string" },
+          { "name": "email", "type": "string" },
+          { "name": "phone", "type": "string" }
+        ]
       }
     ],
-    relations: [{ from: 'clients', to: 'projects', type: 'one-to-many' }],
-    roles: []
+    "relations": [
+      { "from": "clients", "to": "projects", "type": "one-to-many" }
+    ],
+    "roles": []
   }
 }
 ```
