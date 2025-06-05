@@ -1,47 +1,55 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { User, AuthError } from '@supabase/supabase-js';
+// =============================================================================
+// src/App.tsx
+// =============================================================================
+import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { createClient, User as SupabaseUser } from '@supabase/supabase-js';
 
-// Supabase configuration
+// =============================================================================
+// KONFIGURACJA SUPABASE
+// =============================================================================
 const supabaseUrl = 'https://vvkjfzjikfuqdpmomdbx.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2a2pmemppa2Z1cWRwbW9tZGJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4OTE2NTcsImV4cCI6MjA2NDQ2NzY1N30.sVejmzInkxXnGxjm5rowJKuwTuVrcJ40Ix3Dk1W3ogE';
-
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Types
-interface VendorColumn {
+// =============================================================================
+// DEFINICJE TYPÓW
+// =============================================================================
+type ColumnType = 'text' | 'integer' | 'boolean' | 'timestamp';
+
+interface Column {
   name: string;
-  type: 'text' | 'integer' | 'boolean' | 'timestamp';
+  type: ColumnType;
   required?: boolean;
   enum?: string[];
 }
 
-interface VendorTable {
+interface Table {
   name: string;
-  columns: VendorColumn[];
+  columns: Column[];
 }
 
-interface VendorSchema {
-  tables: VendorTable[];
+interface Schema {
+  tables: Table[];
 }
 
-interface Vendor {
+export interface Vendor {
   id?: string;
   slug: string;
   name: string;
-  schema: VendorSchema;
+  schema: Schema;
   created_at?: string;
-  created_by?: string;
+  updated_at?: string;
 }
 
-// Auth Context
-const AuthContext = createContext<{
-  user: User | null;
+interface AuthContextType {
+  user: SupabaseUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-}>({
+}
+
+const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   signIn: async () => {},
@@ -49,19 +57,21 @@ const AuthContext = createContext<{
   signOut: async () => {},
 });
 
-// Auth Provider
-const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+export const useAuth = () => useContext(AuthContext);
+
+// =============================================================================
+// PROVIDER AUTORYZACJI
+// =============================================================================
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
@@ -92,486 +102,455 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
   );
 };
 
-// Table Service
-class TableService {
-  static async createVendorTables(vendor: Vendor): Promise<void> {
-    const { schema, slug } = vendor;
-    
-    // Set vendor context in JWT claims for security
-    await supabase.rpc('set_vendor_context', { vendor_slug: slug });
-    
-    for (const table of schema.tables) {
-      const tableName = `${slug}_${table.name}`;
-      
-      // Build CREATE TABLE SQL
-      const columns = table.columns.map(col => {
-        let columnDef = `${col.name} ${this.mapColumnType(col.type)}`;
-        if (col.required) columnDef += ' NOT NULL';
-        if (col.enum) columnDef += ` CHECK (${col.name} IN (${col.enum.map(v => `'${v}'`).join(', ')}))`;
-        return columnDef;
-      }).join(', ');
-      
-      const createTableSQL = `
-        CREATE TABLE IF NOT EXISTS ${tableName} (
-          id BIGSERIAL PRIMARY KEY,
-          ${columns},
-          vendor_slug TEXT DEFAULT '${slug}' NOT NULL,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          CONSTRAINT ${tableName}_vendor_check CHECK (vendor_slug = '${slug}')
-        );
-        
-        -- Enable RLS
-        ALTER TABLE ${tableName} ENABLE ROW LEVEL SECURITY;
-        
-        -- Create RLS policy for vendor isolation
-        CREATE POLICY "${tableName}_vendor_policy" ON ${tableName}
-          FOR ALL USING (vendor_slug = current_setting('jwt.claims.vendor_slug', true));
-        
-        -- Create index for performance
-        CREATE INDEX IF NOT EXISTS ${tableName}_vendor_idx ON ${tableName}(vendor_slug);
-      `;
-      
-      // Execute SQL using supabase rpc with vendor context
-      const { error } = await supabase.rpc('exec_sql', { sql: createTableSQL });
-      if (error) {
-        console.error(`Error creating table ${tableName}:`, error);
-        throw new Error(`Failed to create table ${tableName}: ${error.message}`);
-      }
-    }
-  }
-  
-  static async dropVendorTables(vendor: Vendor): Promise<void> {
-    const { schema, slug } = vendor;
-    
-    // Set vendor context for security
-    await supabase.rpc('set_vendor_context', { vendor_slug: slug });
-    
-    for (const table of schema.tables) {
-      const tableName = `${slug}_${table.name}`;
-      const dropTableSQL = `DROP TABLE IF EXISTS ${tableName} CASCADE;`;
-      
-      const { error } = await supabase.rpc('exec_sql', { sql: dropTableSQL });
-      if (error) {
-        console.error(`Error dropping table ${tableName}:`, error);
-      }
-    }
-  }
-  
-  private static mapColumnType(type: string): string {
-    switch (type) {
-      case 'text': return 'TEXT';
-      case 'integer': return 'INTEGER';
-      case 'boolean': return 'BOOLEAN';
-      case 'timestamp': return 'TIMESTAMP WITH TIME ZONE';
-      default: return 'TEXT';
-    }
-  }
-}
+// =============================================================================
+// MAPOWANIE TYPU KOLUMN
+// =============================================================================
+const mapColType = (t: ColumnType) =>
+  t === 'text'
+    ? 'TEXT'
+    : t === 'integer'
+    ? 'INTEGER'
+    : t === 'boolean'
+    ? 'BOOLEAN'
+    : 'TIMESTAMP WITH TIME ZONE';
 
-// Vendor Service
+// =============================================================================
+// VENDOR SERVICE (z użyciem exec_vendor_sql)
+// =============================================================================
+const execVendorSQL = async (slug: string, sql: string) => {
+  // Wykonujemy SQL z bezpośrednim przekazaniem vendor_slug
+  const { error } = await supabase.rpc('exec_vendor_sql', { 
+    vendor_slug: slug, 
+    sql: sql 
+  });
+  if (error) throw new Error(`Błąd wykonywania SQL: ${error.message}`);
+};
+
 class VendorService {
   static async getVendors(): Promise<Vendor[]> {
     const { data, error } = await supabase
       .from('vendors')
       .select('*')
       .order('created_at', { ascending: false });
-    
     if (error) throw error;
     return data || [];
   }
-  
-  static async createVendor(vendor: Omit<Vendor, 'id' | 'created_at' | 'created_by'>): Promise<Vendor> {
-    // First create the vendor record
+
+  static async createVendor(vendor: Omit<Vendor, 'id' | 'created_at' | 'updated_at'>): Promise<Vendor> {
+    // 1) Dodajemy wpis w tabeli „vendors"
     const { data, error } = await supabase
       .from('vendors')
       .insert([vendor])
       .select()
       .single();
-    
     if (error) throw error;
+
+    const slug = data.slug;
     
-    // Then create the tables
+    // 2) Budujemy jedno zapytanie SQL obejmujące wszystkie tabele z prefixem
+    const sql = vendor.schema.tables
+      .map((table) => {
+        const tableName = `${slug}_${table.name}`;
+        const columns = table.columns
+          .map((col) => {
+            let def = `${col.name} ${mapColType(col.type)}`;
+            if (col.required) def += ' NOT NULL';
+            if (col.enum) def += ` CHECK (${col.name} IN (${col.enum.map((v) => `'${v}'`).join(', ')}))`;
+            return def;
+          })
+          .join(', ');
+
+        return `
+CREATE TABLE IF NOT EXISTS ${tableName} (
+  id BIGSERIAL PRIMARY KEY,
+  ${columns},
+  vendor_slug TEXT DEFAULT '${slug}' NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  CONSTRAINT ${tableName}_vendor_check CHECK (vendor_slug = '${slug}')
+);
+ALTER TABLE ${tableName} ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "${tableName}_vendor_policy" ON ${tableName}
+  FOR ALL USING (vendor_slug = '${slug}');
+CREATE INDEX IF NOT EXISTS ${tableName}_vendor_idx ON ${tableName}(vendor_slug);
+`;
+      })
+      .join('\n');
+
     try {
-      await TableService.createVendorTables(data);
+      // 3) Wykonujemy SQL dla tabel (vendor już istnieje w bazie)
+      await execVendorSQL(slug, sql);
       return data;
     } catch (tableError) {
-      // If table creation fails, delete the vendor record
+      // rollback: usuwamy vendor, jeśli tworzenie tabel się nie powiodło
       await supabase.from('vendors').delete().eq('id', data.id);
       throw tableError;
     }
   }
-  
-  static async updateVendor(id: string, updates: Partial<Vendor>): Promise<Vendor> {
+
+  static async updateVendor(
+    id: string,
+    updates: Partial<Omit<Vendor, 'id'>>,
+  ): Promise<Vendor> {
     const { data, error } = await supabase
       .from('vendors')
       .update(updates)
       .eq('id', id)
       .select()
       .single();
-    
     if (error) throw error;
     return data;
   }
-  
+
   static async deleteVendor(vendor: Vendor): Promise<void> {
-    // First drop the tables
-    await TableService.dropVendorTables(vendor);
-    
-    // Then delete the vendor record
+    const slug = vendor.slug;
+    // generujemy DROP TABLE dla każdej tabeli vendora
+    const sql = vendor.schema.tables
+      .map((table) => `DROP TABLE IF EXISTS ${slug}_${table.name} CASCADE;`)
+      .join('\n');
+
+    await execVendorSQL(slug, sql);
+
     const { error } = await supabase
       .from('vendors')
       .delete()
       .eq('id', vendor.id);
-    
     if (error) throw error;
   }
 }
 
-// Auth Component
+// =============================================================================
+// KOMPONENTY UI: AuthForm, VendorForm, VendorList, AppContent
+// =============================================================================
+
 const AuthForm: React.FC = () => {
+  const { signIn, signUp } = useAuth();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
-  const { signIn, signUp } = useContext(AuthContext);
-  
-  const handleSubmit = async () => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     setError('');
-    
     try {
       if (isSignUp) {
         await signUp(email, password);
-        alert('Check your email for verification link!');
+        alert('Sprawdź e-mail w celu weryfikacji!');
       } else {
         await signIn(email, password);
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Wystąpił błąd');
     } finally {
       setLoading(false);
     }
   };
-  
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8">
+      <form onSubmit={handleSubmit} className="max-w-md w-full space-y-6 p-8 bg-white rounded shadow">
+        <h2 className="text-3xl font-bold text-center">
+          {isSignUp ? 'Rejestracja' : 'Logowanie'}
+        </h2>
+        {error && <div className="text-red-600 text-center">{error}</div>}
+
         <div>
-          <h2 className="text-3xl font-bold text-center text-gray-900">
-            {isSignUp ? 'Sign Up' : 'Sign In'}
-          </h2>
-          <p className="text-center text-gray-600 mt-2">Multi-Tenant Vendor System</p>
+          <label className="block text-sm font-medium">E-mail</label>
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="mt-1 w-full px-3 py-2 border rounded"
+          />
         </div>
-        
-        <div className="space-y-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          
+
+        <div>
+          <label className="block text-sm font-medium">Hasło</label>
+          <input
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="mt-1 w-full px-3 py-2 border rounded"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+        >
+          {loading ? 'Proszę czekać...' : isSignUp ? 'Zarejestruj się' : 'Zaloguj się'}
+        </button>
+
+        <div className="text-center text-sm">
           <button
             type="button"
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          >
-            {loading ? 'Loading...' : (isSignUp ? 'Sign Up' : 'Sign In')}
-          </button>
-        </div>
-        
-        <div className="text-center">
-          <button
             onClick={() => setIsSignUp(!isSignUp)}
-            className="text-blue-600 hover:text-blue-500"
+            className="text-blue-600 hover:underline"
           >
-            {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
+            {isSignUp ? 'Masz już konto? Zaloguj się' : 'Nie masz konta? Zarejestruj się'}
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 };
 
-// Vendor Form Component
-const VendorForm: React.FC<{
+interface VendorFormProps {
   vendor?: Vendor;
-  onSave: (vendor: Omit<Vendor, 'id' | 'created_at' | 'created_by'>) => Promise<void>;
+  onSave: (vendorData: Omit<Vendor, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   onCancel: () => void;
-}> = ({ vendor, onSave, onCancel }) => {
-  const [formData, setFormData] = useState({
-    slug: vendor?.slug || '',
-    name: vendor?.name || '',
-    schemaJson: vendor ? JSON.stringify(vendor.schema, null, 2) : `{
+}
+
+const VendorForm: React.FC<VendorFormProps> = ({ vendor, onSave, onCancel }) => {
+  const [slug, setSlug] = useState(vendor?.slug || '');
+  const [name, setName] = useState(vendor?.name || '');
+  const [schemaJson, setSchemaJson] = useState(
+    vendor
+      ? JSON.stringify(vendor.schema, null, 2)
+      : `{
   "tables": [
     {
       "name": "tickets",
       "columns": [
         {"name": "title", "type": "text", "required": true},
-        {"name": "status", "type": "text", "enum": ["open", "closed"]}
+        {"name": "description", "type": "text"},
+        {"name": "status", "type": "text", "enum": ["open", "in_progress", "closed"]},
+        {"name": "priority", "type": "integer"},
+        {"name": "created_by", "type": "text", "required": true}
+      ]
+    },
+    {
+      "name": "users",
+      "columns": [
+        {"name": "email", "type": "text", "required": true},
+        {"name": "full_name", "type": "text", "required": true},
+        {"name": "role", "type": "text", "enum": ["admin", "user", "support"]},
+        {"name": "active", "type": "boolean"}
       ]
     }
   ]
 }`
-  });
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
-    
     try {
-      const schema = JSON.parse(formData.schemaJson);
-      await onSave({
-        slug: formData.slug,
-        name: formData.name,
-        schema
-      });
-    } catch (err: any) {
-      setError(err.message || 'Invalid JSON schema');
+      if (!/^[a-z0-9-]+$/.test(slug)) {
+        throw new Error('Slug może zawierać tylko małe litery, cyfry i myślniki.');
+      }
+      const schema: Schema = JSON.parse(schemaJson);
+      await onSave({ slug, name, schema });
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        setError('Błędny format JSON w schemacie');
+      } else {
+        setError(err instanceof Error ? err.message : 'Wystąpił błąd');
+      }
     } finally {
       setLoading(false);
     }
   };
-  
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold mb-4">
-          {vendor ? 'Edit Vendor' : 'Create New Vendor'}
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4">
+      <div className="bg-white rounded p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+        <h3 className="text-xl font-semibold mb-4">
+          {vendor ? 'Edytuj dostawcę' : 'Nowy dostawca'}
         </h3>
-        
-        <div className="space-y-4">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-          
+        {error && <div className="text-red-600 mb-4">{error}</div>}
+
+        <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Slug</label>
+            <label className="block text-sm font-medium">Slug</label>
             <input
               type="text"
-              value={formData.slug}
-              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
               required
-              pattern="[a-z0-9-]+"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value)}
               placeholder="helpdesk-app"
+              className="mt-1 w-full px-3 py-2 border rounded"
             />
-            <p className="text-xs text-gray-500">Only lowercase letters, numbers, and hyphens</p>
+            <p className="text-xs text-gray-500">tylko małe litery, cyfry, myślniki</p>
           </div>
-          
           <div>
-            <label className="block text-sm font-medium text-gray-700">Name</label>
+            <label className="block text-sm font-medium">Nazwa</label>
             <input
               type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="Helpdesk System"
+              className="mt-1 w-full px-3 py-2 border rounded"
             />
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Schema (JSON)</label>
-            <textarea
-              value={formData.schemaJson}
-              onChange={(e) => setFormData({ ...formData, schemaJson: e.target.value })}
-              required
-              rows={15}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-            />
-          </div>
-          
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={loading}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-            >
-              {loading ? 'Saving...' : 'Save Vendor'}
-            </button>
-          </div>
+        </div>
+
+        <label className="block text-sm font-medium">Schema (JSON)</label>
+        <textarea
+          required
+          value={schemaJson}
+          onChange={(e) => setSchemaJson(e.target.value)}
+          rows={16}
+          className="mt-1 w-full px-3 py-2 border rounded font-mono text-sm"
+        />
+
+        <div className="flex justify-end space-x-3 mt-4">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 border rounded text-gray-700"
+          >
+            Anuluj
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+          >
+            {loading ? 'Zapisuję...' : 'Zapisz'}
+          </button>
         </div>
       </div>
     </div>
   );
 };
 
-// Vendor List Component
 const VendorList: React.FC = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingVendor, setEditingVendor] = useState<Vendor | undefined>();
+  const [editing, setEditing] = useState<Vendor | null>(null);
   const [error, setError] = useState('');
-  
+
   const loadVendors = async () => {
     try {
       const data = await VendorService.getVendors();
       setVendors(data);
-    } catch (err: any) {
-      setError('Failed to load vendors: ' + err.message);
+    } catch (err) {
+      setError('Błąd ładowania: ' + (err instanceof Error ? err.message : ''));
     } finally {
       setLoading(false);
     }
   };
-  
+
   useEffect(() => {
     loadVendors();
   }, []);
-  
-  const handleSaveVendor = async (vendorData: Omit<Vendor, 'id' | 'created_at' | 'created_by'>) => {
+
+  const handleSave = async (vendorData: Omit<Vendor, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      if (editingVendor) {
-        await VendorService.updateVendor(editingVendor.id!, vendorData);
+      if (editing) {
+        await VendorService.updateVendor(editing.id!, vendorData);
       } else {
         await VendorService.createVendor(vendorData);
       }
-      
       setShowForm(false);
-      setEditingVendor(undefined);
+      setEditing(null);
       await loadVendors();
-    } catch (err: any) {
-      throw new Error('Failed to save vendor: ' + err.message);
+    } catch (err) {
+      throw new Error('Nie udało się zapisać: ' + (err instanceof Error ? err.message : ''));
     }
   };
-  
-  const handleDeleteVendor = async (vendor: Vendor) => {
-    if (!confirm(`Are you sure you want to delete "${vendor.name}"? This will also drop all associated tables.`)) {
-      return;
-    }
-    
+
+  const handleDelete = async (vendor: Vendor) => {
+    if (!confirm(`Usunąć "${vendor.name}"? To usunie wszystkie powiązane tabele.`)) return;
     try {
       await VendorService.deleteVendor(vendor);
       await loadVendors();
-    } catch (err: any) {
-      alert('Failed to delete vendor: ' + err.message);
+    } catch (err) {
+      alert('Nie udało się usunąć: ' + (err instanceof Error ? err.message : ''));
     }
   };
-  
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Loading vendors...</div>
+      <div className="flex items-center justify-center min-h-screen text-xl">
+        Ładowanie...
       </div>
     );
   }
-  
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Multi-Tenant Vendors</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">Dostawcy</h1>
         <button
           onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          className="px-4 py-2 bg-blue-600 text-white rounded"
         >
-          Add Vendor
+          Dodaj
         </button>
       </div>
-      
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-          {error}
-        </div>
-      )}
-      
+
+      {error && <div className="text-red-600 mb-4">{error}</div>}
+
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {vendors.map((vendor) => (
-          <div key={vendor.id} className="bg-white p-6 rounded-lg shadow-md border">
-            <div className="flex justify-between items-start mb-4">
+        {vendors.map((v) => (
+          <div key={v.id} className="bg-white p-4 rounded shadow border">
+            <div className="flex justify-between mb-3">
               <div>
-                <h3 className="text-xl font-semibold text-gray-900">{vendor.name}</h3>
-                <p className="text-gray-600">/{vendor.slug}</p>
+                <h3 className="text-xl font-semibold">{v.name}</h3>
+                <p className="text-gray-600">/{v.slug}</p>
               </div>
-              <div className="flex space-x-2">
+              <div className="space-x-2 text-sm">
                 <button
                   onClick={() => {
-                    setEditingVendor(vendor);
+                    setEditing(v);
                     setShowForm(true);
                   }}
-                  className="text-blue-600 hover:text-blue-800"
+                  className="text-blue-600"
                 >
-                  Edit
+                  Edytuj
                 </button>
                 <button
-                  onClick={() => handleDeleteVendor(vendor)}
-                  className="text-red-600 hover:text-red-800"
+                  onClick={() => handleDelete(v)}
+                  className="text-red-600"
                 >
-                  Delete
+                  Usuń
                 </button>
               </div>
             </div>
-            
-            <div className="space-y-2">
-              <p className="text-sm text-gray-600">
-                <strong>Tables:</strong> {vendor.schema.tables.length}
-              </p>
-              <div className="text-sm text-gray-600">
-                {vendor.schema.tables.map((table, idx) => (
-                  <div key={idx} className="ml-4">
-                    • {vendor.slug}_{table.name} ({table.columns.length} columns)
+            <p className="text-sm text-gray-600">
+              <strong>Tabele:</strong> {v.schema.tables.length}
+            </p>
+            <div className="mt-2 text-xs">
+              {v.schema.tables.map((t, i) => (
+                <div key={i} className="border-l-2 border-gray-200 pl-2 mb-1">
+                  <div className="font-medium">{`${v.slug}_${t.name}`}</div>
+                  <div className="text-gray-500">
+                    {t.columns.map((c) => c.name).join(', ')}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-            
-            <div className="mt-4 pt-4 border-t border-gray-200 text-xs text-gray-500">
-              Created: {new Date(vendor.created_at!).toLocaleDateString()}
+            <div className="mt-4 text-xs text-gray-500">
+              Utworzono: {v.created_at ? new Date(v.created_at).toLocaleDateString('pl-PL') : '—'}
             </div>
           </div>
         ))}
       </div>
-      
+
       {vendors.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-600 text-lg">No vendors yet. Create your first vendor!</p>
+        <div className="text-center py-12 text-gray-600">
+          Brak dostawców. Dodaj nowego.
         </div>
       )}
-      
+
       {showForm && (
         <VendorForm
-          vendor={editingVendor}
-          onSave={handleSaveVendor}
+          vendor={editing || undefined}
+          onSave={handleSave}
           onCancel={() => {
             setShowForm(false);
-            setEditingVendor(undefined);
+            setEditing(null);
           }}
         />
       )}
@@ -579,51 +558,46 @@ const VendorList: React.FC = () => {
   );
 };
 
-// Main App Component
-const App: React.FC = () => {
-  const { user, loading } = useContext(AuthContext);
-  
+const AppContent: React.FC = () => {
+  const { user, loading, signOut } = useAuth();
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+      <div className="flex items-center justify-center min-h-screen text-xl">
+        Ładowanie...
       </div>
     );
   }
-  
   if (!user) {
     return <AuthForm />;
   }
-  
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-semibold">Multi-Tenant System</h1>
+          <div>
+            <h1 className="text-xl font-semibold">Multi-Tenant System</h1>
+            <p className="text-sm text-gray-600">Zarządzanie dostawcami</p>
+          </div>
           <div className="flex items-center space-x-4">
             <span className="text-gray-600">{user.email}</span>
             <button
-              onClick={() => supabase.auth.signOut()}
-              className="text-blue-600 hover:text-blue-800"
+              onClick={signOut}
+              className="text-blue-600 hover:underline"
             >
-              Sign Out
+              Wyloguj
             </button>
           </div>
         </div>
       </header>
-      
       <VendorList />
     </div>
   );
 };
 
-// App with Auth Provider
-const AppWithAuth: React.FC = () => {
-  return (
-    <AuthProvider>
-      <App />
-    </AuthProvider>
-  );
-};
+const App: React.FC = () => (
+  <AuthProvider>
+    <AppContent />
+  </AuthProvider>
+);
 
-export default AppWithAuth;
+export default App;
