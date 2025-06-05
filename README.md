@@ -10,7 +10,7 @@ Generuj aplikacje CRUD przez chat z AI.
 1. Utwórz projekt na [supabase.com](https://supabase.com)  
 2. W SQL Editor wklej i uruchom poniższe polecenia:
 ```sql
-   -- =============================================================================
+ -- =============================================================================
 -- multitenant.sql - Kompletne rozwiązanie multi-tenant dla Supabase
 -- =============================================================================
 -- Ten plik zawiera wszystko co potrzebne do uruchomienia systemu multi-tenant:
@@ -19,7 +19,10 @@ Generuj aplikacje CRUD przez chat z AI.
 -- 3) Funkcje pomocnicze
 -- =============================================================================
 
--- Usuń stare funkcje jeśli istnieją
+-- Usuń stare triggery PRZED usunięciem funkcji
+DROP TRIGGER IF EXISTS update_vendors_updated_at ON vendors;
+
+-- Teraz można bezpiecznie usunąć funkcje
 DROP FUNCTION IF EXISTS get_vendor_tables(text);
 DROP FUNCTION IF EXISTS set_vendor_context(text);
 DROP FUNCTION IF EXISTS exec_sql(text);
@@ -40,6 +43,9 @@ CREATE TABLE IF NOT EXISTS vendors (
 -- Polityki RLS dla tabeli vendors
 ALTER TABLE vendors ENABLE ROW LEVEL SECURITY;
 
+-- Usuń starą politykę jeśli istnieje
+DROP POLICY IF EXISTS "vendors_policy" ON vendors;
+
 CREATE POLICY "vendors_policy" ON vendors
   FOR ALL TO authenticated
   USING (true)
@@ -57,7 +63,6 @@ END;
 $function$;
 
 -- Trigger dla tabeli vendors
-DROP TRIGGER IF EXISTS update_vendors_updated_at ON vendors;
 CREATE TRIGGER update_vendors_updated_at 
   BEFORE UPDATE ON vendors 
   FOR EACH ROW 
