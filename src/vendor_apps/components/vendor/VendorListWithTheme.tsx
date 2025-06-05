@@ -1,9 +1,9 @@
 // src/components/VendorListWithTheme.tsx - Zaktualizowana wersja VendorList z możliwością wyświetlania aplikacji
 import React, { useState, useEffect } from 'react';
-import { Vendor, VendorForm } from '../vendor_apps';
-import { VendorService } from '../vendor_apps';
+import { Vendor, VendorForm } from '../..';
+import { VendorService } from '../..';
 
-import { Layout, Card, Button } from '../themes/default';
+import { Layout, Card, Button } from '../../../themes/default';
 import { VendorAppDisplay } from './VendorAppDisplay';
 
 

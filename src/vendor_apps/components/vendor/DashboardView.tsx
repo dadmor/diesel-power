@@ -1,5 +1,5 @@
-import { Card } from "../themes/default";
-import { Vendor } from "../vendor_apps";
+import { Card } from "../../../themes/default";
+import { Vendor } from "../..";
 
 // src/components/DashboardView.tsx
 export const DashboardView: React.FC<{ vendor: Vendor; appData: any }> = ({ vendor, appData }) => {

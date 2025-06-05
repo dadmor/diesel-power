@@ -1,4 +1,4 @@
-import { VendorListWithTheme } from "./components/VendorListWithTheme";
+import { VendorListWithTheme } from "./vendor_apps/components/vendor/VendorListWithTheme";
 import { AuthForm, AuthProvider, useAuth } from "./vendor_apps";
 
 // Main App Content Component

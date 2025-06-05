@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Vendor } from "../vendor_apps";
-import { Button, Card, DataTable } from "../themes/default";
+import { Vendor } from "../..";
+import { Button, Card, DataTable } from "../../../themes/default";
 
 // src/components/DataView.tsx
 export const DataView: React.FC<{ vendor: Vendor; appData: any }> = ({ vendor, appData }) => {

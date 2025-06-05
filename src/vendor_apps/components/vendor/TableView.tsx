@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Vendor } from "../vendor_apps";
-import { Button, Card, DataTable } from "../themes/default";
+import { Vendor } from "../..";
+import { Button, Card, DataTable } from "../../../themes/default";
 
 // src/components/TableView.tsx
 export const TableView: React.FC<{ vendor: Vendor; table: any; appData: any }> = ({ 

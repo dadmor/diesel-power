@@ -1,12 +1,10 @@
 // src/components/VendorAppDisplay.tsx
 import React, { useState, useEffect } from 'react';
-import { Vendor } from '../vendor_apps';
-import { Layout, Card, Button, Navigation } from '../themes/default';
+import { Vendor } from '../..';
+import { Layout, Card, Button, Navigation } from '../../../themes/default';
 import { DashboardView } from './DashboardView';
 import { TableView } from './TableView';
-import { DEFAULT_APP_SCHEMA } from '../themes/default/defaultAppSchema';
-
-
+import { DEFAULT_APP_SCHEMA } from '../../../themes/default/defaultAppSchema';
 
 interface VendorAppDisplayProps {
   vendor: Vendor;
@@ -110,7 +108,9 @@ export const VendorAppDisplay: React.FC<VendorAppDisplayProps> = ({ vendor, onBa
       )}
 
       {currentPage === 'data' && (
-        <DataView vendor={vendor} appData={appData} />
+        // TutajCanBeConverted
+        <>TODO: DATA</>
+        // <DataView vendor={vendor} appData={appData} />
       )}
 
       {appData.schema?.tables?.map((table: any) => (

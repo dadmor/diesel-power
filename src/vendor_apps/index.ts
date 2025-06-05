@@ -6,7 +6,7 @@ export { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 // Vendor Components
 export { VendorForm } from "./components/vendor/VendorForm";
-export { VendorList } from "./components/vendor/VendorList";
+
 
 // Services
 export { VendorService } from "./services/VendorService";
