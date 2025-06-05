@@ -1,10 +1,10 @@
 // src/themes/default/components/MessageDisplay.tsx
-import React from 'react';
-import { Check, ChevronRightCircle } from 'lucide-react';
+import React from "react";
+import { Check, ChevronRightCircle } from "lucide-react";
 
 interface MessageDisplayProps {
   text: string;
-  type: 'user' | 'ai';
+  type: "user" | "ai";
   onTagClick?: (tagName: string, nextLayer?: string) => void;
   getNextLayerForTag?: (tagName: string) => string | null;
 }
@@ -38,16 +38,20 @@ export const MessageContent: React.FC<{
       // Utwórz graficzny tag
       if (nextLayer && onTagClick) {
         parts.push(
-          <button
-            key={keyCounter++}
-            onClick={() => onTagClick(tagName, nextLayer)}
-            className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-3 text-sm rounded-md cursor-pointer transition-colors mt-3 shadow-sm"
-            title={`Przejdź do warstwy: ${nextLayer}`}
-          >
-            <Check />
-            {tagName}
-            <ChevronRightCircle size={16} />
-          </button>
+          <div className="w-full justify-between flex overflow-hidden gap-2 bg-green-500 text-white  text-sm rounded-md  transition-colors mt-3 mb-1 shadow-sm">
+            <div className="flex items-center gap-2 px-4 py-3">
+              <Check /> {tagName}
+            </div>
+
+            <button
+              key={keyCounter++}
+              onClick={() => onTagClick(tagName, nextLayer)}
+              className="border-l px-4 py-3 hover:bg-green-600 flex items-center gap-2"
+              title={`Przejdź do warstwy: ${nextLayer}`}
+            > <ChevronRightCircle size={16} />{nextLayer}
+             
+            </button>
+          </div>
         );
       } else {
         parts.push(
@@ -96,14 +100,12 @@ export const MessageDisplay: React.FC<MessageDisplayProps> = ({
   text,
   type,
   onTagClick,
-  getNextLayerForTag
+  getNextLayerForTag,
 }) => {
   return (
     <div
       className={`p-3 rounded-lg ${
-        type === "user"
-          ? "bg-blue-500 text-white"
-          : "bg-gray-100 text-gray-800"
+        type === "user" ? "bg-blue-500 text-white" : "bg-gray-100 text-gray-800"
       }`}
     >
       <MessageContent
@@ -114,4 +116,4 @@ export const MessageDisplay: React.FC<MessageDisplayProps> = ({
     </div>
   );
 };
-export default MessageDisplay
+export default MessageDisplay;
