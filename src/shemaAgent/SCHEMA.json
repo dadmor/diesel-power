@@ -1,8 +1,7 @@
-
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Generated System Schema",
-  "description": "Schema opisująca strukturę danych generowaną przez system warstw",
+  "description": "Schema opisująca strukturę danych generowaną przez system warstw.\n\nAI podczas generowania obiektów powinno:\n1. W warstwie \"system\": stworzyć obiekt \"system\" z polami name, description, type (wszystkie wymagane).\n   Opcjonalnie może dodać tablicę \"features\" (typy string).\n2. W warstwie \"database\": stworzyć tablicę \"tables\". Każdy element tej tablicy to obiekt:\n   { name: string, fields: [ { name:string, type:string, required:boolean, unique:boolean } ] }.\n   Wszystkie field-y muszą mieć poprawny typ (string, number, boolean, date, json).\n   Relacje (jeśli dodane) powinny trafić do tablicy \"relations\":\n   { from: string, to: string, type: \"one-to-one\"|\"one-to-many\"|\"many-to-many\", foreignKey?: string }.\n3. W warstwie \"ux\": stworzyć opcjonalne pola:\n   - \"pages\": tablica obiektów { name:string, type: \"list\"|\"detail\"|\"form\"|\"dashboard\"|\"auth\", table?:string, slug?:string, components?: [string,...] }\n     * name i type są wymagane; table, slug, components mogą być pominięte.\n     * Jeśli AI wygeneruje slug, musi on być unikalnym stringiem.\n     * components to lista nazw komponentów (tablica stringów).\n   - \"components\": tablica obiektów { name:string, type: \"button\"|\"form\"|\"table\"|\"chart\"|\"modal\"|\"menu\", props: { ... } }.\n     * name i type są wymagane; props to dowolny obiekt klucz→wartość.\n   - \"theme\": obiekt { primaryColor: \"#RRGGBB\", layout: \"sidebar\"|\"topbar\"|\"minimal\", style: \"modern\"|\"classic\"|\"material\"|\"bootstrap\" }.\n     * primaryColor i layout są wymagane, style jest opcjonalne.\n\nNa końcu każda wygenerowana część powinna przejść walidację AJV względem tego schematu.\nJeżeli coś nie pasuje, AI powinno poprawić strukturę, zanim przekroczy kolejny krok.",
   "type": "object",
   "properties": {
     "system": {
@@ -31,7 +30,7 @@
         },
         "features": {
           "type": "array",
-          "description": "Lista funkcji systemu",
+          "description": "Lista funkcji systemu (stringi)",
           "items": {
             "type": "string"
           }
@@ -40,11 +39,11 @@
     },
     "database": {
       "type": "object",
-      "description": "Warstwa 2: Struktura bazy danych",
+      "description": "Warstwa 2: Struktura bazy danych (tabele i relacje)",
       "properties": {
         "tables": {
           "type": "array",
-          "description": "Tabele w bazie danych",
+          "description": "Tablice w bazie danych",
           "items": {
             "type": "object",
             "properties": {
@@ -65,7 +64,7 @@
                     "type": {
                       "type": "string",
                       "enum": ["string", "number", "boolean", "date", "json"],
-                      "description": "Typ danych"
+                      "description": "Typ danych pola"
                     },
                     "required": {
                       "type": "boolean",
@@ -116,11 +115,11 @@
     },
     "ux": {
       "type": "object",
-      "description": "Warstwa 3: Interfejs użytkownika",
+      "description": "Warstwa 3: Interfejs użytkownika (strony, komponenty, motyw)",
       "properties": {
         "pages": {
           "type": "array",
-          "description": "Strony aplikacji",
+          "description": "Tablica obiektów opisujących strony aplikacji",
           "items": {
             "type": "object",
             "properties": {
@@ -135,7 +134,7 @@
               },
               "table": {
                 "type": "string",
-                "description": "Powiązana tabela (opcjonalne)"
+                "description": "Opcjonalna nazwa tabeli"
               },
               "slug": {
                 "type": "string",
@@ -143,10 +142,10 @@
               },
               "components": {
                 "type": "array",
+                "description": "Lista komponentów na stronie",
                 "items": {
                   "type": "string"
-                },
-                "description": "Lista komponentów na stronie"
+                }
               }
             },
             "required": ["name", "type"]
@@ -154,7 +153,7 @@
         },
         "components": {
           "type": "array",
-          "description": "Komponenty interfejsu",
+          "description": "Tablica obiektów opisujących każdy komponent UI",
           "items": {
             "type": "object",
             "properties": {
@@ -169,7 +168,7 @@
               },
               "props": {
                 "type": "object",
-                "description": "Właściwości komponentu",
+                "description": "Właściwości komponentu w formacie klucz→wartość",
                 "additionalProperties": true
               }
             },
@@ -178,12 +177,12 @@
         },
         "theme": {
           "type": "object",
-          "description": "Motyw interfejsu",
+          "description": "Obiekt definiujący motyw (kolor, układ, styl)",
           "properties": {
             "primaryColor": {
               "type": "string",
               "pattern": "^#[0-9A-Fa-f]{6}$",
-              "description": "Główny kolor (hex)"
+              "description": "Główny kolor w formacie hex (np. \"#3b82f6\")"
             },
             "layout": {
               "type": "string",
@@ -229,7 +228,8 @@
               {
                 "name": "name",
                 "type": "string",
-                "required": true
+                "required": true,
+                "unique": false
               },
               {
                 "name": "email",
@@ -255,9 +255,11 @@
             "name": "Lista użytkowników",
             "type": "list",
             "table": "users",
-            "slug": "lista-uzytkownikow"
+            "slug": "lista-uzytkownikow",
+            "components": []
           }
         ],
+        "components": [],
         "theme": {
           "primaryColor": "#3b82f6",
           "layout": "sidebar",

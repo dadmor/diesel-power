@@ -1,4 +1,4 @@
-// src/shemaAgent/TagBuilder.tsx - Z modalem edycji tagów
+// src/shemaAgent/TagBuilder.tsx
 import React, { useState, useEffect } from "react";
 import { Message, LayerType, SchemaState, ParsedTag } from "./types";
 import { parseTags, processTag } from "./schemaProcessor";
@@ -7,9 +7,8 @@ import { ChatInput, LayerTabs, MessageList, SchemaDisplay } from "./components";
 import { TagEditorModal } from "./components/TagEditorModal";
 import { LAYERS_CONFIG, LAYERS, DEFAULT_SCHEMA_STATE } from "./LAYERS";
 import { ChatContainer, ChatHeader } from "@/themes/default";
-import { Code, Trash, X } from "lucide-react";
+import { BookPlus, BookX, BotMessageSquare, ChevronRight, Code, Trash, X } from "lucide-react";
 
-// Funkcja do wczytania danych PRZED renderem
 const getInitialData = () => {
   try {
     const saved = localStorage.getItem("schema_session");
@@ -49,6 +48,7 @@ const getInitialData = () => {
 const TagBuilder: React.FC = () => {
   const initialData = getInitialData();
 
+  const [isOpen, setIsOpen] = useState<boolean>(false);
   const [currentLayer, setCurrentLayer] = useState<LayerType>(
     initialData.currentLayer
   );
@@ -57,7 +57,7 @@ const TagBuilder: React.FC = () => {
   const [input, setInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [showSchema, setShowSchema] = useState<boolean>(false);
-  
+
   // Modal state
   const [editModalOpen, setEditModalOpen] = useState<boolean>(false);
   const [editingTag, setEditingTag] = useState<ParsedTag | null>(null);
@@ -121,7 +121,7 @@ const TagBuilder: React.FC = () => {
       );
       const tags = parseTags(aiResponse);
 
-      const aiMessageId = Date.now() + Math.random(); // Dodaj losowość
+      const aiMessageId = Date.now() + Math.random();
       setMessages((prev) => [
         ...prev,
         {
@@ -141,7 +141,7 @@ const TagBuilder: React.FC = () => {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      const errorMessageId = Date.now() + Math.random() + 1000; // Jeszcze większa losowość
+      const errorMessageId = Date.now() + Math.random() + 1000;
       setMessages((prev) => [
         ...prev,
         {
@@ -171,7 +171,11 @@ const TagBuilder: React.FC = () => {
     ]);
   };
 
-  const handleTagEdit = (messageId: number, originalTag: ParsedTag, updatedTag: ParsedTag) => {
+  const handleTagEdit = (
+    messageId: number,
+    originalTag: ParsedTag,
+    updatedTag: ParsedTag
+  ) => {
     setEditingMessageId(messageId);
     setEditingTag(originalTag);
     setEditModalOpen(true);
@@ -179,146 +183,160 @@ const TagBuilder: React.FC = () => {
 
   const handleTagSave = (updatedTag: ParsedTag) => {
     if (editingMessageId && editingTag) {
-      // Znajdź wiadomość i zaktualizuj jej treść
       setMessages((prev) =>
         prev.map((msg) => {
           if (msg.id === editingMessageId) {
-            // Zamień stary tag na nowy w treści wiadomości
-            const oldTagRegex = new RegExp(
-              `<${editingTag.tag}([^>]*)>`,
-              'g'
-            );
-            
-            const newTagString = `<${updatedTag.tag} ${Object.entries(updatedTag.params)
+            const oldTagRegex = new RegExp(`<${editingTag.tag}([^>]*)>`, "g");
+            const newTagString = `<${updatedTag.tag} ${Object.entries(
+              updatedTag.params
+            )
               .map(([key, value]) => `${key}="${value}"`)
-              .join(' ')}>`;
-            
+              .join(" ")}>`;
             const updatedText = msg.text.replace(oldTagRegex, newTagString);
-            
             return {
               ...msg,
               text: updatedText,
-              tags: msg.tags.map(tag => tag === editingTag.tag ? updatedTag.tag : tag)
+              tags: msg.tags.map((tag) =>
+                tag === editingTag.tag ? updatedTag.tag : tag
+              ),
             };
           }
           return msg;
         })
       );
 
-      // Zaktualizuj schemat
       try {
         let updatedData = schema[currentLayer];
-        
-        // Usuń stare dane (jeśli tag się zmienił)
-        if (editingTag.tag !== updatedTag.tag) {
-          // Tu można dodać logikę usuwania starych danych
-        }
-        
-        // Dodaj nowe dane
-        updatedData = processTag(currentLayer, updatedTag.tag, updatedTag.params, updatedData);
+        // Tu można dodać logikę usuwania starych danych, jeśli tag się zmienił
+        updatedData = processTag(
+          currentLayer,
+          updatedTag.tag,
+          updatedTag.params,
+          updatedData
+        );
         setSchema((prev: any) => ({ ...prev, [currentLayer]: updatedData }));
       } catch (error) {
         console.error("Błąd aktualizacji schematu:", error);
       }
     }
-    
-    // Reset state
+
     setEditingTag(null);
     setEditingMessageId(null);
+    setEditModalOpen(false);
   };
 
   return (
-    <div className="h-screen bg-gray-900/50 p-4 fixed top-0 left-0 w-full">
-      <div className="h-full flex gap-6 justify-end">
-        {showSchema && (
-          <SchemaDisplay
-            schema={schema}
-            currentLayer={currentLayer}
-            layers={LAYERS}
-          />
-        )}
+    <>
+      {!isOpen && (
+        <button
+          className="fixed bottom-4 right-4 p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors"
+          onClick={() => setIsOpen(true)}
+        >
+         <BotMessageSquare/>
+        </button>
+      )}
 
-        <div className="w-[600px] flex-shrink-0 h-full flex flex-col">
-          <ChatContainer className="h-full flex flex-col">
-            <ChatHeader>
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1">
-                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  </div>
-                  <span className="text-sm text-gray-500">Auto-save</span>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowSchema(!showSchema)}
-                    className={`p-2  rounded-lg transition-colors ${
-                      showSchema
-                        ? "bg-gray-500 text-white hover:bg-blue-600"
-                        : "bg-blue-500 text-white hover:bg-gray-600"
-                    }`}
-                  >
-                    {showSchema ? (
-                      <X className="w-4 h-4" />
-                    ) : (
-                      <Code className="w-4 h-4" />
-                    )}
-                  </button>
-
-                  <button
-                    onClick={handleReset}
-                    className="p-2  bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                  >
-                    <Trash className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              <LayerTabs
-                layers={LAYERS}
-                currentLayer={currentLayer}
-                setCurrentLayer={handleLayerChange}
+      {isOpen && (
+        <div className="h-screen bg-gray-900/50 p-4 fixed top-0 left-0 w-full z-50">
+          <div className="h-full flex gap-6 justify-end">
+            {showSchema && (
+              <SchemaDisplay
                 schema={schema}
-              />
-            </ChatHeader>
-
-            <div className="flex-1 overflow-y-auto min-h-0">
-              <MessageList
-                messages={messages}
-                loading={loading}
-                onLayerChange={handleLayerChange}
-                onTagEdit={handleTagEdit}
-              />
-            </div>
-
-            <div className="flex-shrink-0 mt-4">
-              <ChatInput
-                input={input}
-                setInput={setInput}
-                onSubmit={handleSubmit}
-                loading={loading}
                 currentLayer={currentLayer}
+                layers={LAYERS}
               />
-            </div>
-          </ChatContainer>
-        </div>
-      </div>
+            )}
 
-      {/* Tag Editor Modal */}
-      <TagEditorModal
-        isOpen={editModalOpen}
-        onClose={() => {
-          setEditModalOpen(false);
-          setEditingTag(null);
-          setEditingMessageId(null);
-        }}
-        tag={editingTag}
-        layer={currentLayer}
-        onSave={handleTagSave}
-      />
-    </div>
+            <div className="w-[600px] flex-shrink-0 h-full flex flex-col">
+              <ChatContainer className="h-full flex flex-col">
+                <ChatHeader>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                        <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      </div>
+                      <span className="text-sm text-gray-500">Auto-save</span>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setShowSchema(!showSchema)}
+                        className={`p-2 rounded-lg transition-colors ${
+                          showSchema
+                            ? "bg-gray-500 text-white hover:bg-blue-600"
+                            : "bg-blue-500 text-white hover:bg-gray-600"
+                        }`}
+                      >
+                        {showSchema ? (
+                          <BookX className="w-4 h-4" />
+                        ) : (
+                          <BookPlus className="w-4 h-4" />
+                        )}
+                      </button>
+
+                      <button
+                        onClick={handleReset}
+                        className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </button>
+
+                      {/* Ikonka zamykająca jako trzecia po koszu */}
+                      <button
+                        onClick={() => setIsOpen(false)}
+                        className="p-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <LayerTabs
+                    layers={LAYERS}
+                    currentLayer={currentLayer}
+                    setCurrentLayer={handleLayerChange}
+                    schema={schema}
+                  />
+                </ChatHeader>
+
+                <div className="flex-1 overflow-y-auto min-h-0">
+                  <MessageList
+                    messages={messages}
+                    loading={loading}
+                    onLayerChange={handleLayerChange}
+                    onTagEdit={handleTagEdit}
+                  />
+                </div>
+
+                <div className="flex-shrink-0 mt-4">
+                  <ChatInput
+                    input={input}
+                    setInput={setInput}
+                    onSubmit={handleSubmit}
+                    loading={loading}
+                    currentLayer={currentLayer}
+                  />
+                </div>
+              </ChatContainer>
+            </div>
+          </div>
+
+          <TagEditorModal
+            isOpen={editModalOpen}
+            onClose={() => {
+              setEditModalOpen(false);
+              setEditingTag(null);
+              setEditingMessageId(null);
+            }}
+            tag={editingTag}
+            layer={currentLayer}
+            onSave={handleTagSave}
+          />
+        </div>
+      )}
+    </>
   );
 };
 
