@@ -1,11 +1,12 @@
-// src/shemaAgent/TagBuilder.tsx - Z zachowanymi tagami w treści
-
+// src/shemaAgent/TagBuilder.tsx - ZAKTUALIZOWANY z theme
 import React, { useState, useEffect } from "react";
 import { Message, LayerType, SchemaState } from "./types";
 import { parseTags, processTag } from "./schemaProcessor";
 import { sendToGemini } from "./apiService";
 import { ChatInput, LayerTabs, MessageList, SchemaDisplay } from "./components";
 import { LAYERS_CONFIG, DEFAULT_SCHEMA_STATE } from "./LAYERS";
+import { ChatContainer, ChatHeader } from "@/themes/default";
+
 
 const LAYERS = Object.entries(LAYERS_CONFIG).map(([id, config]) => ({
   id: id as LayerType,
@@ -103,16 +104,13 @@ const TagBuilder: React.FC = () => {
       const aiResponse = await sendToGemini(input, currentLayer, schema, messages);
       const tags = parseTags(aiResponse);
       
-      // ZMIANA: Nie usuwamy tagów z treści, zachowujemy oryginalną odpowiedź
-      // const cleanResponse = aiResponse.replace(/<[^>]*>/g, ""); // <- TO USUWAMY
-      
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now() + 1,
-          text: aiResponse, // <- ZMIANA: używamy oryginalnej odpowiedzi z tagami
+          text: aiResponse,
           type: "ai",
-          tags: tags.map((t) => t.tag), // <- zachowujemy dla kompatybilności
+          tags: tags.map((t) => t.tag),
         },
       ]);
 
@@ -176,8 +174,8 @@ const TagBuilder: React.FC = () => {
           layers={LAYERS}
         />
         
-        <div className="bg-white rounded-lg shadow-sm border flex-1 flex flex-col">
-          <div className="px-4 py-3 border-b">
+        <ChatContainer>
+          <ChatHeader>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1">
@@ -195,7 +193,7 @@ const TagBuilder: React.FC = () => {
               setCurrentLayer={handleLayerChange}
               schema={schema}
             />
-          </div>
+          </ChatHeader>
 
           <MessageList 
             messages={messages} 
@@ -210,7 +208,7 @@ const TagBuilder: React.FC = () => {
             loading={loading}
             currentLayer={currentLayer}
           />
-        </div>
+        </ChatContainer>
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
-// MessageList.tsx - Z inline tagami w treści wiadomości
+// src/shemaAgent/components/MessageList.tsx - ZAKTUALIZOWANY z theme
 import React, { useEffect, useRef } from "react";
 import { Message, LayerType } from "../types";
 import { LAYERS_CONFIG } from "../LAYERS";
-import { Check, ChevronRightCircle } from "lucide-react";
+import { LoadingSpinner, MessageDisplay } from "@/themes/default";
+
 
 interface MessageListProps {
   messages: Message[];
@@ -16,88 +17,6 @@ const getNextLayerForTag = (tagName: string): LayerType | null => {
     if (tag) return tag.nextLayer as LayerType | null;
   }
   return null;
-};
-
-// Komponent do renderowania treści z inline tagami
-const MessageContent: React.FC<{
-  text: string;
-  onLayerChange?: (layer: LayerType) => void;
-}> = ({ text, onLayerChange }) => {
-  // Funkcja do parsowania tekstu z tagami i zamiany ich na komponenty
-  const parseTextWithTags = (text: string) => {
-    const tagRegex = /<(\w+)([^>]*)>/g;
-    const parts: (string | JSX.Element)[] = [];
-    let lastIndex = 0;
-    let match;
-    let keyCounter = 0;
-
-    while ((match = tagRegex.exec(text)) !== null) {
-      // Dodaj tekst przed tagiem
-      if (match.index > lastIndex) {
-        const textBefore = text.slice(lastIndex, match.index);
-        if (textBefore) {
-          parts.push(textBefore);
-        }
-      }
-
-      const [fullMatch, tagName] = match;
-      const nextLayer = getNextLayerForTag(tagName);
-
-      // Utwórz graficzny tag
-      if (nextLayer && onLayerChange) {
-        parts.push(
-          <button
-            key={keyCounter++}
-            onClick={() => onLayerChange(nextLayer)}
-            className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-3 text-sm rounded-md cursor-pointer transition-colors   mt-3 shadow-sm"
-            title={`Przejdź do warstwy: ${nextLayer}`}
-          >
-            <Check />
-            {tagName}
-            <ChevronRightCircle size={16} />
-          </button>
-        );
-      } else {
-        parts.push(
-          <span
-            key={keyCounter++}
-            className="inline-flex items-center bg-green-400 text-white px-2 py-1 text-xs rounded-md mx-1"
-          >
-            {tagName}
-          </span>
-        );
-      }
-
-      lastIndex = match.index + fullMatch.length;
-    }
-
-    // Dodaj pozostały tekst po ostatnim tagu
-    if (lastIndex < text.length) {
-      const remainingText = text.slice(lastIndex);
-      if (remainingText) {
-        parts.push(remainingText);
-      }
-    }
-
-    // Jeśli nie ma tagów, zwróć oryginalny tekst
-    if (parts.length === 0) {
-      return text;
-    }
-
-    return parts;
-  };
-
-  const content = parseTextWithTags(text);
-
-  return (
-    <div className="whitespace-pre-wrap">
-      {Array.isArray(content)
-        ? content.map((part, index) =>
-            typeof part === "string" ? <span key={index}>{part}</span> : part
-          )
-        : content}
-    </div>
-  );
 };
 
 const MessageList: React.FC<MessageListProps> = ({
@@ -119,6 +38,12 @@ const MessageList: React.FC<MessageListProps> = ({
     scrollToBottom();
   }, [messages, loading]);
 
+  const handleTagClick = (_tagName: string, nextLayer?: string) => {
+    if (nextLayer && onLayerChange) {
+      onLayerChange(nextLayer as LayerType);
+    }
+  };
+
   return (
     <div ref={containerRef} className="overflow-y-auto p-4 space-y-4 flex-1">
       {messages.map((msg) => (
@@ -129,19 +54,12 @@ const MessageList: React.FC<MessageListProps> = ({
           }`}
         >
           <div className="max-w-xs lg:max-w-md">
-            <div
-              className={`p-3 rounded-lg ${
-                msg.type === "user"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-100 text-gray-800"
-              }`}
-            >
-              <MessageContent
-                text={msg.text}
-                onLayerChange={msg.type === "ai" ? onLayerChange : undefined}
-              />
-            </div>
-            {/* Usuwamy osobną sekcję z tagami, bo teraz są inline */}
+            <MessageDisplay
+              text={msg.text}
+              type={msg.type}
+              onTagClick={handleTagClick}
+              getNextLayerForTag={getNextLayerForTag}
+            />
           </div>
         </div>
       ))}
@@ -149,7 +67,7 @@ const MessageList: React.FC<MessageListProps> = ({
       {loading && (
         <div className="flex justify-start">
           <div className="bg-gray-100 p-3 rounded-lg">
-            <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+            <LoadingSpinner />
           </div>
         </div>
       )}

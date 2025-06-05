@@ -1,6 +1,6 @@
 // src/themes/default/components/Layout.tsx
 import React from 'react';
-import { useAuth } from '../../../vendor_apps';
+
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -44,3 +44,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => 
     </div>
   );
 };
+function useAuth(): { user: any; signOut: any; } {
+  throw new Error('Function not implemented.');
+}
+
