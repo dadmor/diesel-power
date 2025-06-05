@@ -5,11 +5,19 @@ interface InputProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
-  type?: 'text' | 'textarea';
+  type?: 'text' | 'textarea' | 'password' | 'email';
   rows?: number;
+  placeholder?: string;
 }
 
-export const Input: React.FC<InputProps> = ({ label, value, onChange, type = 'text', rows = 4 }) => {
+export const Input: React.FC<InputProps> = ({ 
+  label, 
+  value, 
+  onChange, 
+  type = 'text', 
+  rows = 4,
+  placeholder 
+}) => {
   return (
     <div className="mb-3">
       <label className="block mb-1 font-medium">{label}:</label>
@@ -19,13 +27,15 @@ export const Input: React.FC<InputProps> = ({ label, value, onChange, type = 'te
           value={value}
           onChange={e => onChange(e.target.value)}
           className="w-full p-2 border border-gray-300 rounded font-mono"
+          placeholder={placeholder}
         />
       ) : (
         <input
-          type="text"
+          type={type === 'password' ? 'password' : type === 'email' ? 'email' : 'text'}
           value={value}
           onChange={e => onChange(e.target.value)}
           className="w-full p-2 border border-gray-300 rounded"
+          placeholder={placeholder}
         />
       )}
     </div>
