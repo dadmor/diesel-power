@@ -1,8 +1,8 @@
-// MessageList.tsx - Z auto-scroll do dołu
+// MessageList.tsx - Z inline tagami w treści wiadomości
 import React, { useEffect, useRef } from "react";
 import { Message, LayerType } from "../types";
 import { LAYERS_CONFIG } from "../LAYERS";
-import { ChevronRightCircle } from "lucide-react";
+import { Check, ChevronRightCircle } from "lucide-react";
 
 interface MessageListProps {
   messages: Message[];
@@ -18,33 +18,109 @@ const getNextLayerForTag = (tagName: string): LayerType | null => {
   return null;
 };
 
+// Komponent do renderowania treści z inline tagami
+const MessageContent: React.FC<{
+  text: string;
+  onLayerChange?: (layer: LayerType) => void;
+}> = ({ text, onLayerChange }) => {
+  // Funkcja do parsowania tekstu z tagami i zamiany ich na komponenty
+  const parseTextWithTags = (text: string) => {
+    const tagRegex = /<(\w+)([^>]*)>/g;
+    const parts: (string | JSX.Element)[] = [];
+    let lastIndex = 0;
+    let match;
+    let keyCounter = 0;
+
+    while ((match = tagRegex.exec(text)) !== null) {
+      // Dodaj tekst przed tagiem
+      if (match.index > lastIndex) {
+        const textBefore = text.slice(lastIndex, match.index);
+        if (textBefore) {
+          parts.push(textBefore);
+        }
+      }
+
+      const [fullMatch, tagName] = match;
+      const nextLayer = getNextLayerForTag(tagName);
+
+      // Utwórz graficzny tag
+      if (nextLayer && onLayerChange) {
+        parts.push(
+          <button
+            key={keyCounter++}
+            onClick={() => onLayerChange(nextLayer)}
+            className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-4 py-3 text-sm rounded-md cursor-pointer transition-colors   mt-3 shadow-sm"
+            title={`Przejdź do warstwy: ${nextLayer}`}
+          >
+            <Check />
+            {tagName}
+            <ChevronRightCircle size={16} />
+          </button>
+        );
+      } else {
+        parts.push(
+          <span
+            key={keyCounter++}
+            className="inline-flex items-center bg-green-400 text-white px-2 py-1 text-xs rounded-md mx-1"
+          >
+            {tagName}
+          </span>
+        );
+      }
+
+      lastIndex = match.index + fullMatch.length;
+    }
+
+    // Dodaj pozostały tekst po ostatnim tagu
+    if (lastIndex < text.length) {
+      const remainingText = text.slice(lastIndex);
+      if (remainingText) {
+        parts.push(remainingText);
+      }
+    }
+
+    // Jeśli nie ma tagów, zwróć oryginalny tekst
+    if (parts.length === 0) {
+      return text;
+    }
+
+    return parts;
+  };
+
+  const content = parseTextWithTags(text);
+
+  return (
+    <div className="whitespace-pre-wrap">
+      {Array.isArray(content)
+        ? content.map((part, index) =>
+            typeof part === "string" ? <span key={index}>{part}</span> : part
+          )
+        : content}
+    </div>
+  );
+};
+
 const MessageList: React.FC<MessageListProps> = ({
   messages,
   loading,
   onLayerChange,
 }) => {
-  // Ref do kontenera z wiadomościami
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Funkcja do przewijania na dół
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ 
+    messagesEndRef.current?.scrollIntoView({
       behavior: "smooth",
-      block: "end"
+      block: "end",
     });
   };
 
-  // Auto-scroll po każdej zmianie wiadomości lub loading
   useEffect(() => {
     scrollToBottom();
   }, [messages, loading]);
 
   return (
-    <div 
-      ref={containerRef}
-      className="overflow-y-auto p-4 space-y-4 flex-1"
-    >
+    <div ref={containerRef} className="overflow-y-auto p-4 space-y-4 flex-1">
       {messages.map((msg) => (
         <div
           key={msg.id}
@@ -60,40 +136,16 @@ const MessageList: React.FC<MessageListProps> = ({
                   : "bg-gray-100 text-gray-800"
               }`}
             >
-              <div className="whitespace-pre-wrap">{msg.text}</div>
+              <MessageContent
+                text={msg.text}
+                onLayerChange={msg.type === "ai" ? onLayerChange : undefined}
+              />
             </div>
-            {msg.tags.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {msg.tags.map((tag, i) => {
-                  const nextLayer = getNextLayerForTag(tag);
-                  if (nextLayer && onLayerChange) {
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => onLayerChange(nextLayer)}
-                        className="shadow-md bg-green-500 hover:bg-green-600 text-white px-3 py-2 text-sm rounded cursor-pointer transition-colors inline-flex items-center gap-2"
-                        title={`Przejdź do warstwy: ${nextLayer}`}
-                      >
-                        {tag}
-                        <ChevronRightCircle size={14} />
-                      </button>
-                    );
-                  }
-                  return (
-                    <span
-                      key={i}
-                      className="bg-green-400 text-white px-3 py-2 text-sm rounded"
-                    >
-                      {tag}
-                    </span>
-                  );
-                })}
-              </div>
-            )}
+            {/* Usuwamy osobną sekcję z tagami, bo teraz są inline */}
           </div>
         </div>
       ))}
-      
+
       {loading && (
         <div className="flex justify-start">
           <div className="bg-gray-100 p-3 rounded-lg">
@@ -101,8 +153,7 @@ const MessageList: React.FC<MessageListProps> = ({
           </div>
         </div>
       )}
-      
-      {/* Niewidoczny element na końcu do scroll */}
+
       <div ref={messagesEndRef} />
     </div>
   );

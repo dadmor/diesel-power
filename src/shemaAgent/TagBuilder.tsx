@@ -1,4 +1,4 @@
-// src/shemaAgent/TagBuilder.tsx - Z SchemaProjectManager
+// src/shemaAgent/TagBuilder.tsx - Z zachowanymi tagami w treści
 
 import React, { useState, useEffect } from "react";
 import { Message, LayerType, SchemaState } from "./types";
@@ -102,15 +102,17 @@ const TagBuilder: React.FC = () => {
     try {
       const aiResponse = await sendToGemini(input, currentLayer, schema, messages);
       const tags = parseTags(aiResponse);
-      const cleanResponse = aiResponse.replace(/<[^>]*>/g, "");
-
+      
+      // ZMIANA: Nie usuwamy tagów z treści, zachowujemy oryginalną odpowiedź
+      // const cleanResponse = aiResponse.replace(/<[^>]*>/g, ""); // <- TO USUWAMY
+      
       setMessages((prev) => [
         ...prev,
         {
           id: Date.now() + 1,
-          text: cleanResponse,
+          text: aiResponse, // <- ZMIANA: używamy oryginalnej odpowiedzi z tagami
           type: "ai",
-          tags: tags.map((t) => t.tag),
+          tags: tags.map((t) => t.tag), // <- zachowujemy dla kompatybilności
         },
       ]);
 
@@ -185,8 +187,6 @@ const TagBuilder: React.FC = () => {
                 </div>
                 <span className="text-sm text-gray-500">Auto-save</span>
               </div>
-              
-              
             </div>
             
             <LayerTabs
