@@ -17,10 +17,7 @@ const AdminPanel: React.FC = () => {
       <div className="max-w-4xl mx-auto space-y-6">
         <VendorForm />
         <VendorList />
-        <div className="border-t pt-6">
-          <h2 className="text-xl font-bold mb-4">Tag Builder</h2>
-          <TagBuilder />
-        </div>
+        
       </div>
     </Layout>
   )
@@ -46,6 +43,9 @@ const App: React.FC = () => {
           </VendorProvider>
         </AuthGuard>
       </AuthProvider>
+      
+          <TagBuilder />
+        
     </SupabaseProvider>
   )
 }
