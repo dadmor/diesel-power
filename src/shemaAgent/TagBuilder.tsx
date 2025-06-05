@@ -7,7 +7,7 @@ import { ChatInput, LayerTabs, MessageList, SchemaDisplay } from "./components";
 import { TagEditorModal } from "./components/TagEditorModal";
 import { LAYERS_CONFIG, LAYERS, DEFAULT_SCHEMA_STATE } from "./LAYERS";
 import { ChatContainer, ChatHeader } from "@/themes/default";
-import { BookPlus, BookX, BotMessageSquare, ChevronRight, Code, Trash, X } from "lucide-react";
+import { BookPlus, BookX, BotMessageSquare, Trash, X } from "lucide-react";
 
 const getInitialData = () => {
   try {
@@ -174,7 +174,6 @@ const TagBuilder: React.FC = () => {
   const handleTagEdit = (
     messageId: number,
     originalTag: ParsedTag,
-    updatedTag: ParsedTag
   ) => {
     setEditingMessageId(messageId);
     setEditingTag(originalTag);

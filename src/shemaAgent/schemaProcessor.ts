@@ -3,7 +3,7 @@
 // Generyczny processor taga z obsługą walidacji JSON Schema i parsowania pól,
 // w szczególności specjalne rozłożenie każdego elementu "fields" (dla create_table).
 
-import { ParsedTag, LayerType, validateAgainstSchema, TagConfig, ComputedField } from "./types";
+import { ParsedTag, LayerType, validateAgainstSchema, TagConfig } from "./types";
 import { LAYERS_CONFIG } from "./LAYERS";
 import schema from "./SCHEMA.json";
 

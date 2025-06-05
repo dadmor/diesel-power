@@ -4,7 +4,7 @@
 // aby wiedzieć, jakie tagi może wygenerować, jakie parametry przyjąć i jak je
 // przetworzyć. Komentarze wyjaśniają, co każda sekcja robi.
 
-import { LayerType, Layer, SchemaState, TagConfig, ComputedField } from './types';
+import { LayerType, Layer, SchemaState, TagConfig } from './types';
 
 export const LAYERS_CONFIG: Record<LayerType, {
   name: string;
