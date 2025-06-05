@@ -1,56 +1,55 @@
-// src/shemaAgent/TagBuilder.tsx - ZAKTUALIZOWANY z theme
+// src/shemaAgent/TagBuilder.tsx - Zoptymalizowany bez duplikacji
 import React, { useState, useEffect } from "react";
 import { Message, LayerType, SchemaState } from "./types";
 import { parseTags, processTag } from "./schemaProcessor";
 import { sendToGemini } from "./apiService";
 import { ChatInput, LayerTabs, MessageList, SchemaDisplay } from "./components";
-import { LAYERS_CONFIG, DEFAULT_SCHEMA_STATE } from "./LAYERS";
+import { LAYERS_CONFIG, LAYERS, DEFAULT_SCHEMA_STATE } from "./LAYERS";
 import { ChatContainer, ChatHeader } from "@/themes/default";
-
-
-const LAYERS = Object.entries(LAYERS_CONFIG).map(([id, config]) => ({
-  id: id as LayerType,
-  name: config.name,
-  description: config.description
-}));
-
-const getDefaultMessage = (layerType: LayerType): string => {
-  const messages = {
-    concept: "Napisz jaki system chcesz stworzyć",
-    database: "Na podstawie koncepcji, jakie tabele i relacje potrzebujesz?",
-    ui: "Jakie strony i interfejs chcesz dla swojej aplikacji?",
-    refine: "Jakie komponenty i widżety chcesz w aplikacji?"
-  };
-  return messages[layerType];
-};
 
 // Funkcja do wczytania danych PRZED renderem
 const getInitialData = () => {
   try {
-    const saved = localStorage.getItem('schema_session');
+    const saved = localStorage.getItem("schema_session");
     if (saved) {
       const data = JSON.parse(saved);
       return {
         currentLayer: data.currentLayer || "concept",
         schema: data.schema || DEFAULT_SCHEMA_STATE,
-        messages: data.messages || [{ id: 1, text: getDefaultMessage("concept"), type: "ai", tags: [] }]
+        messages: data.messages || [
+          { 
+            id: 1, 
+            text: LAYERS_CONFIG.concept.defaultMessage, 
+            type: "ai", 
+            tags: [] 
+          },
+        ],
       };
     }
   } catch (error) {
-    console.error('Błąd wczytywania localStorage:', error);
+    console.error("Błąd wczytywania localStorage:", error);
   }
-  
+
   return {
     currentLayer: "concept" as LayerType,
     schema: DEFAULT_SCHEMA_STATE,
-    messages: [{ id: 1, text: getDefaultMessage("concept"), type: "ai", tags: [] }]
+    messages: [
+      { 
+        id: 1, 
+        text: LAYERS_CONFIG.concept.defaultMessage, 
+        type: "ai", 
+        tags: [] 
+      },
+    ],
   };
 };
 
 const TagBuilder: React.FC = () => {
   const initialData = getInitialData();
-  
-  const [currentLayer, setCurrentLayer] = useState<LayerType>(initialData.currentLayer);
+
+  const [currentLayer, setCurrentLayer] = useState<LayerType>(
+    initialData.currentLayer
+  );
   const [schema, setSchema] = useState<SchemaState>(initialData.schema);
   const [messages, setMessages] = useState<Message[]>(initialData.messages);
   const [input, setInput] = useState<string>("");
@@ -58,29 +57,33 @@ const TagBuilder: React.FC = () => {
 
   // Zapisuj do localStorage
   useEffect(() => {
-    localStorage.setItem('schema_session', JSON.stringify({
-      currentLayer,
-      schema,
-      messages
-    }));
+    localStorage.setItem(
+      "schema_session",
+      JSON.stringify({
+        currentLayer,
+        schema,
+        messages,
+      })
+    );
   }, [currentLayer, schema, messages]);
 
   const handleLayerChange = (newLayer: LayerType) => {
     setCurrentLayer(newLayer);
-    
-    const hasLayerMessages = messages.some(msg => 
-      msg.text.includes(getDefaultMessage(newLayer))
+
+    const defaultMessage = LAYERS_CONFIG[newLayer].defaultMessage;
+    const hasLayerMessages = messages.some((msg) =>
+      msg.text.includes(defaultMessage)
     );
-    
+
     if (!hasLayerMessages) {
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           id: Date.now(),
-          text: getDefaultMessage(newLayer),
+          text: defaultMessage,
           type: "ai",
-          tags: []
-        }
+          tags: [],
+        },
       ]);
     }
   };
@@ -101,9 +104,14 @@ const TagBuilder: React.FC = () => {
     setLoading(true);
 
     try {
-      const aiResponse = await sendToGemini(input, currentLayer, schema, messages);
+      const aiResponse = await sendToGemini(
+        input,
+        currentLayer,
+        schema,
+        messages
+      );
       const tags = parseTags(aiResponse);
-      
+
       setMessages((prev) => [
         ...prev,
         {
@@ -120,9 +128,9 @@ const TagBuilder: React.FC = () => {
       });
 
       setSchema((prev: any) => ({ ...prev, [currentLayer]: updatedData }));
-
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       setMessages((prev) => [
         ...prev,
         {
@@ -138,31 +146,19 @@ const TagBuilder: React.FC = () => {
     setLoading(false);
   };
 
-  // Handler dla wczytania projektu z bazy
-  const handleProjectLoad = (projectSchema: SchemaState) => {
-    setSchema(projectSchema);
-    setCurrentLayer("concept");
-    
-    // Dodaj wiadomość o wczytaniu
-    setMessages([{
-      id: Date.now(),
-      text: "Projekt został wczytany z bazy danych. Możesz kontynuować edycję.",
-      type: "ai",
-      tags: []
-    }]);
-  };
-
   // Handler dla resetu
   const handleReset = () => {
-    localStorage.removeItem('schema_session');
+    localStorage.removeItem("schema_session");
     setSchema(DEFAULT_SCHEMA_STATE);
     setCurrentLayer("concept");
-    setMessages([{
-      id: 1,
-      text: getDefaultMessage("concept"),
-      type: "ai",
-      tags: []
-    }]);
+    setMessages([
+      {
+        id: 1,
+        text: LAYERS_CONFIG.concept.defaultMessage,
+        type: "ai",
+        tags: [],
+      },
+    ]);
   };
 
   return (
@@ -174,7 +170,7 @@ const TagBuilder: React.FC = () => {
           layers={LAYERS}
         />
         <div className="w-96 p-72"></div>
-        
+
         <ChatContainer>
           <ChatHeader>
             <div className="flex items-center justify-between mb-3">
@@ -186,8 +182,15 @@ const TagBuilder: React.FC = () => {
                 </div>
                 <span className="text-sm text-gray-500">Auto-save</span>
               </div>
+
+              <button
+                onClick={handleReset}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Reset
+              </button>
             </div>
-            
+
             <LayerTabs
               layers={LAYERS}
               currentLayer={currentLayer}
@@ -196,8 +199,8 @@ const TagBuilder: React.FC = () => {
             />
           </ChatHeader>
 
-          <MessageList 
-            messages={messages} 
+          <MessageList
+            messages={messages}
             loading={loading}
             onLayerChange={handleLayerChange}
           />

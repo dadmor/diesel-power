@@ -1,13 +1,13 @@
-
-// LAYERS.ts - Uproszczone i konfigurowalne
+// LAYERS.ts - Czysty JSON bez metod, gotowy na bazę danych
 import { LayerType, Layer, SchemaState } from './types';
 
-// POJEDYNCZA KONFIGURACJA - wszystko w jednym miejscu
+// GŁÓWNA KONFIGURACJA - czysty JSON
 export const LAYERS_CONFIG = {
   concept: {
     name: "Koncepcja",
     description: "Definiowanie podstawowej koncepcji aplikacji",
     placeholder: "Opisz jaki system chcesz stworzyć...",
+    defaultMessage: "Napisz jaki system chcesz stworzyć",
     tags: [
       {
         name: 'create_app',
@@ -23,6 +23,7 @@ export const LAYERS_CONFIG = {
     name: "Baza",
     description: "Projektowanie struktury bazy danych",
     placeholder: "Opisz jakie tabele i relacje potrzebujesz...",
+    defaultMessage: "Na podstawie koncepcji, jakie tabele i relacje potrzebujesz?",
     tags: [
       {
         name: 'create_table',
@@ -43,8 +44,9 @@ export const LAYERS_CONFIG = {
   
   ui: {
     name: "UI",
-    description: "Projektowanie interfejsu użytkownika", 
+    description: "Projektowanie interfejsu użytkownika",
     placeholder: "Opisz jakie strony i motyw chcesz...",
+    defaultMessage: "Jakie strony i interfejs chcesz dla swojej aplikacji?",
     tags: [
       {
         name: 'create_page',
@@ -67,6 +69,7 @@ export const LAYERS_CONFIG = {
     name: "Komponenty",
     description: "Tworzenie komponentów React Refine",
     placeholder: "Opisz jakie listy, formularze i widżety potrzebujesz...",
+    defaultMessage: "Jakie komponenty i widżety chcesz w aplikacji?",
     tags: [
       {
         name: 'create_list',
@@ -93,55 +96,17 @@ export const LAYERS_CONFIG = {
   }
 } as const;
 
-// Generowanie struktur z konfiguracji
+// Automatyczne generowanie struktur z konfiguracji
 export const LAYERS: Layer[] = Object.entries(LAYERS_CONFIG).map(([id, config]) => ({
   id: id as LayerType,
   name: config.name,
   description: config.description
 }));
 
-// Pomocnicze funkcje
-export const getLayerConfig = (layerType: LayerType) => LAYERS_CONFIG[layerType];
-export const getLayerTags = (layerType: LayerType) => LAYERS_CONFIG[layerType].tags;
-export const getLayerPlaceholder = (layerType: LayerType) => LAYERS_CONFIG[layerType].placeholder;
-
-// Generowanie promptów z tagów
-export const generatePrompt = (layerType: LayerType): string => {
-  const config = LAYERS_CONFIG[layerType];
-  const tagExamples = config.tags.map(tag => tag.example).join('\n');
-  
-  return `ODPOWIADAJ PO POLSKU. Pracujesz w warstwie: ${config.name}.
-
-DOSTĘPNE TAGI:
-${tagExamples}
-
-Zwróć naturalną odpowiedź z odpowiednimi tagami.`;
-};
-
-// Domyślne wiadomości
-export const getDefaultMessage = (layerType: LayerType): string => {
-  const messages = {
-    concept: "Napisz jaki system chcesz stworzyć",
-    database: "Na podstawie koncepcji, jakie tabele i relacje potrzebujesz?",
-    ui: "Jakie strony i interfejs chcesz dla swojej aplikacji?",
-    refine: "Jakie komponenty i widżety chcesz w aplikacji?"
-  };
-  return messages[layerType];
-};
-
-// Domyślny stan
+// Domyślny stan schematu
 export const DEFAULT_SCHEMA_STATE: SchemaState = {
   concept: null,
   database: null,
   ui: null,
   refine: null,
-};
-
-// Funkcja do znajdowania następnej warstwy po użyciu tagu
-export const getNextLayerForTag = (tagName: string): LayerType | null => {
-  for (const [, config] of Object.entries(LAYERS_CONFIG)) {
-    const tag = config.tags.find(t => t.name === tagName);
-    if (tag) return tag.nextLayer as LayerType | null;
-  }
-  return null;
 };
