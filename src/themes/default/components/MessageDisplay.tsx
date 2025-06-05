@@ -17,18 +17,23 @@ export const MessageContent: React.FC<{
 }> = ({ text, onTagClick, getNextLayerForTag }) => {
   // Funkcja do parsowania tekstu z tagami i zamiany ich na komponenty
   const parseTextWithTags = (text: string) => {
+    // Najpierw usuń wszystkie domykające tagi XML
+    const cleanText = text.replace(/<\/\w+>/g, '');
+    
     const tagRegex = /<(\w+)([^>]*)>/g;
     const parts: (string | JSX.Element)[] = [];
     let lastIndex = 0;
     let match;
     let keyCounter = 0;
 
-    while ((match = tagRegex.exec(text)) !== null) {
+    while ((match = tagRegex.exec(cleanText)) !== null) {
       // Dodaj tekst przed tagiem
       if (match.index > lastIndex) {
-        const textBefore = text.slice(lastIndex, match.index);
+        const textBefore = cleanText.slice(lastIndex, match.index);
         if (textBefore) {
-          parts.push(textBefore);
+          parts.push(
+            <span key={`text-${keyCounter++}`}>{textBefore}</span>
+          );
         }
       }
 
@@ -38,25 +43,27 @@ export const MessageContent: React.FC<{
       // Utwórz graficzny tag
       if (nextLayer && onTagClick) {
         parts.push(
-          <div className="w-full justify-between flex overflow-hidden gap-2 bg-green-500 text-white  text-sm rounded-md  transition-colors mt-3 mb-1 shadow-sm">
+          <div 
+            key={`tag-${keyCounter++}`}
+            className="w-full justify-between flex overflow-hidden gap-2 bg-green-500 text-white text-sm rounded-md transition-colors mt-3 mb-1 shadow-sm"
+          >
             <div className="flex items-center gap-2 px-4 py-3">
-              <Check /> {tagName}
+              <Check size={16} /> {tagName}
             </div>
 
             <button
-              key={keyCounter++}
               onClick={() => onTagClick(tagName, nextLayer)}
               className="border-l px-4 py-3 hover:bg-green-600 flex items-center gap-2"
               title={`Przejdź do warstwy: ${nextLayer}`}
-            > <ChevronRightCircle size={16} />{nextLayer}
-             
+            > 
+              <ChevronRightCircle size={16} />{nextLayer}
             </button>
           </div>
         );
       } else {
         parts.push(
           <span
-            key={keyCounter++}
+            key={`simple-tag-${keyCounter++}`}
             className="inline-flex items-center bg-green-400 text-white px-2 py-1 text-xs rounded-md mx-1"
           >
             {tagName}
@@ -68,16 +75,18 @@ export const MessageContent: React.FC<{
     }
 
     // Dodaj pozostały tekst po ostatnim tagu
-    if (lastIndex < text.length) {
-      const remainingText = text.slice(lastIndex);
+    if (lastIndex < cleanText.length) {
+      const remainingText = cleanText.slice(lastIndex);
       if (remainingText) {
-        parts.push(remainingText);
+        parts.push(
+          <span key={`final-text-${keyCounter++}`}>{remainingText}</span>
+        );
       }
     }
 
-    // Jeśli nie ma tagów, zwróć oryginalny tekst
+    // Jeśli nie ma tagów, zwróć oczyszczony tekst
     if (parts.length === 0) {
-      return text;
+      return cleanText;
     }
 
     return parts;
@@ -116,4 +125,5 @@ export const MessageDisplay: React.FC<MessageDisplayProps> = ({
     </div>
   );
 };
+
 export default MessageDisplay;
