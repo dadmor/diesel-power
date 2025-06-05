@@ -3,7 +3,7 @@ import React from 'react';
 import { JsonViewer } from './JsonViewer';
 
 interface SchemaCardProps {
-  title: string;
+  title: React.ReactNode;
   description?: string;
   data: any;
   isCompleted?: boolean;
