@@ -1,12 +1,13 @@
 // src/vendor_app/components/VendorForm.tsx
 import React, { useState } from 'react'
 import { useVendors } from '../context/VendorContext'
+import { Button, Input } from '../../themes/default'
 
 export const VendorForm: React.FC = () => {
   const { addVendor, loading } = useVendors()
-  const [name, setName] = useState<string>('')
-  const [slug, setSlug] = useState<string>('')
-  const [schemaText, setSchemaText] = useState<string>('{}')
+  const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
+  const [schemaText, setSchemaText] = useState('{}')
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -15,73 +16,30 @@ export const VendorForm: React.FC = () => {
       setError('Oba pola są wymagane')
       return
     }
-    let parsedSchema: Record<string, any> = {}
     try {
-      parsedSchema = JSON.parse(schemaText)
+      const schema = JSON.parse(schemaText)
+      setError(null)
+      await addVendor({ name, slug, schema })
+      setName('')
+      setSlug('')
+      setSchemaText('{}')
     } catch {
       setError('Nieprawidłowy JSON w polu schema')
-      return
     }
-    setError(null)
-    await addVendor({ name, slug, schema: parsedSchema })
-    setName('')
-    setSlug('')
-    setSchemaText('{}')
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ marginBottom: 20 }}>
-      <h2>Dodaj Nowego Vendora</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      <div style={{ marginBottom: 10 }}>
-        <label htmlFor="name">Nazwa:</label>
-        <br />
-        <input
-          id="name"
-          type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          style={{ width: '100%', padding: 6, boxSizing: 'border-box' }}
-          required
-        />
-      </div>
-      <div style={{ marginBottom: 10 }}>
-        <label htmlFor="slug">Slug:</label>
-        <br />
-        <input
-          id="slug"
-          type="text"
-          value={slug}
-          onChange={e => setSlug(e.target.value)}
-          style={{ width: '100%', padding: 6, boxSizing: 'border-box' }}
-          required
-        />
-      </div>
-      <div style={{ marginBottom: 10 }}>
-        <label htmlFor="schema">Schema (JSON):</label>
-        <br />
-        <textarea
-          id="schema"
-          rows={4}
-          value={schemaText}
-          onChange={e => setSchemaText(e.target.value)}
-          style={{ width: '100%', padding: 6, boxSizing: 'border-box', fontFamily: 'monospace' }}
-        />
-      </div>
-      <button
-        type="submit"
-        disabled={loading}
-        style={{
-          backgroundColor: '#2b6cb0',
-          color: '#fff',
-          border: 'none',
-          padding: '8px 16px',
-          borderRadius: 4,
-          cursor: loading ? 'not-allowed' : 'pointer',
-        }}
-      >
+    <form onSubmit={handleSubmit} className="mb-5">
+      <h2 className="text-xl font-bold mb-4">Dodaj Nowego Vendora</h2>
+      {error && <p className="text-red-600 mb-3">{error}</p>}
+      
+      <Input label="Nazwa" value={name} onChange={setName} />
+      <Input label="Slug" value={slug} onChange={setSlug} />
+      <Input label="Schema (JSON)" value={schemaText} onChange={setSchemaText} type="textarea" />
+      
+      <Button type="submit" disabled={loading}>
         {loading ? 'Proszę czekać...' : 'Dodaj Vendora'}
-      </button>
+      </Button>
     </form>
   )
 }

@@ -3,17 +3,12 @@ import React from 'react';
 
 interface CardProps {
   children: React.ReactNode;
-  className?: string;
-  hover?: boolean;
+  editing?: boolean;
 }
 
-export const Card: React.FC<CardProps> = ({ children, className = '', hover = false }) => {
+export const Card: React.FC<CardProps> = ({ children, editing = false }) => {
   return (
-    <div className={`
-      bg-white rounded-xl shadow-lg border border-gray-200 p-6
-      ${hover ? 'hover:shadow-xl hover:scale-105 transition-all duration-200' : ''}
-      ${className}
-    `}>
+    <div className={`p-3 mb-3 border border-gray-300 rounded ${editing ? 'bg-blue-50' : 'bg-white'}`}>
       {children}
     </div>
   );
