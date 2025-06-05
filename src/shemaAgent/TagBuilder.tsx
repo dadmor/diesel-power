@@ -1,4 +1,4 @@
-// src/shemaAgent/TagBuilder.tsx - Zoptymalizowany bez duplikacji
+// src/shemaAgent/TagBuilder.tsx - Z ukrywalnymi panelami Schema
 import React, { useState, useEffect } from "react";
 import { Message, LayerType, SchemaState } from "./types";
 import { parseTags, processTag } from "./schemaProcessor";
@@ -6,6 +6,7 @@ import { sendToGemini } from "./apiService";
 import { ChatInput, LayerTabs, MessageList, SchemaDisplay } from "./components";
 import { LAYERS_CONFIG, LAYERS, DEFAULT_SCHEMA_STATE } from "./LAYERS";
 import { ChatContainer, ChatHeader } from "@/themes/default";
+import { Code, Trash, X } from "lucide-react";
 
 // Funkcja do wczytania danych PRZED renderem
 const getInitialData = () => {
@@ -17,11 +18,11 @@ const getInitialData = () => {
         currentLayer: data.currentLayer || "concept",
         schema: data.schema || DEFAULT_SCHEMA_STATE,
         messages: data.messages || [
-          { 
-            id: 1, 
-            text: LAYERS_CONFIG.concept.defaultMessage, 
-            type: "ai", 
-            tags: [] 
+          {
+            id: 1,
+            text: LAYERS_CONFIG.concept.defaultMessage,
+            type: "ai",
+            tags: [],
           },
         ],
       };
@@ -34,11 +35,11 @@ const getInitialData = () => {
     currentLayer: "concept" as LayerType,
     schema: DEFAULT_SCHEMA_STATE,
     messages: [
-      { 
-        id: 1, 
-        text: LAYERS_CONFIG.concept.defaultMessage, 
-        type: "ai", 
-        tags: [] 
+      {
+        id: 1,
+        text: LAYERS_CONFIG.concept.defaultMessage,
+        type: "ai",
+        tags: [],
       },
     ],
   };
@@ -54,6 +55,7 @@ const TagBuilder: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>(initialData.messages);
   const [input, setInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [showSchema, setShowSchema] = useState<boolean>(false);
 
   // Zapisuj do localStorage
   useEffect(() => {
@@ -146,7 +148,6 @@ const TagBuilder: React.FC = () => {
     setLoading(false);
   };
 
-  // Handler dla resetu
   const handleReset = () => {
     localStorage.removeItem("schema_session");
     setSchema(DEFAULT_SCHEMA_STATE);
@@ -163,56 +164,80 @@ const TagBuilder: React.FC = () => {
 
   return (
     <div className="h-screen bg-gray-900/50 p-4 fixed top-0 left-0 w-full">
-      <div className="h-full flex gap-6">
-        <SchemaDisplay
-          schema={schema}
-          currentLayer={currentLayer}
-          layers={LAYERS}
-        />
-        <div className="w-96 p-72"></div>
+      <div className="h-full flex gap-6 justify-end">
+        {showSchema && (
+          <SchemaDisplay
+            schema={schema}
+            currentLayer={currentLayer}
+            layers={LAYERS}
+          />
+        )}
 
-        <ChatContainer>
-          <ChatHeader>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+        <div className="w-[600px] flex-shrink-0 h-full flex flex-col">
+          <ChatContainer className="h-full flex flex-col">
+            <ChatHeader>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  </div>
+                  <span className="text-sm text-gray-500">Auto-save</span>
                 </div>
-                <span className="text-sm text-gray-500">Auto-save</span>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowSchema(!showSchema)}
+                    className={`p-2  rounded-lg transition-colors ${
+                      showSchema
+                        ? "bg-gray-500 text-white hover:bg-blue-600"
+                        : "bg-blue-500 text-white hover:bg-gray-600"
+                    }`}
+                  >
+                    {showSchema ? (
+                      <X className="w-4 h-4" />
+                    ) : (
+                      <Code className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  <button
+                    onClick={handleReset}
+                    className="p-2  bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  >
+                    <Trash className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
-              <button
-                onClick={handleReset}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Reset
-              </button>
+              <LayerTabs
+                layers={LAYERS}
+                currentLayer={currentLayer}
+                setCurrentLayer={handleLayerChange}
+                schema={schema}
+              />
+            </ChatHeader>
+
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <MessageList
+                messages={messages}
+                loading={loading}
+                onLayerChange={handleLayerChange}
+              />
             </div>
 
-            <LayerTabs
-              layers={LAYERS}
-              currentLayer={currentLayer}
-              setCurrentLayer={handleLayerChange}
-              schema={schema}
-            />
-          </ChatHeader>
-
-          <MessageList
-            messages={messages}
-            loading={loading}
-            onLayerChange={handleLayerChange}
-          />
-
-          <ChatInput
-            input={input}
-            setInput={setInput}
-            onSubmit={handleSubmit}
-            loading={loading}
-            currentLayer={currentLayer}
-          />
-        </ChatContainer>
+            <div className="flex-shrink-0 mt-4">
+              <ChatInput
+                input={input}
+                setInput={setInput}
+                onSubmit={handleSubmit}
+                loading={loading}
+                currentLayer={currentLayer}
+              />
+            </div>
+          </ChatContainer>
+        </div>
       </div>
     </div>
   );
