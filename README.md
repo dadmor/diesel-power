@@ -9,7 +9,7 @@ Generuj aplikacje CRUD przez chat z AI.
 
 1. Utwórz projekt na [supabase.com](https://supabase.com)  
 2. W SQL Editor wklej i uruchom poniższe polecenia:
-   ```sql
+```sql
    -- =============================================================================
 -- multitenant.sql - Kompletne rozwiązanie multi-tenant dla Supabase
 -- =============================================================================
