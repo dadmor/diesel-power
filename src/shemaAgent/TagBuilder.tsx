@@ -166,13 +166,14 @@ const TagBuilder: React.FC = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-50 p-4">
+    <div className="h-screen bg-gray-900/50 p-4 fixed top-0 left-0 w-full">
       <div className="h-full flex gap-6">
         <SchemaDisplay
           schema={schema}
           currentLayer={currentLayer}
           layers={LAYERS}
         />
+        <div className="w-96 p-72"></div>
         
         <ChatContainer>
           <ChatHeader>
