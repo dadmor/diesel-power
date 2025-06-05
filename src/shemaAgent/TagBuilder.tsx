@@ -1,9 +1,10 @@
-// src/shemaAgent/TagBuilder.tsx - Z ukrywalnymi panelami Schema
+// src/shemaAgent/TagBuilder.tsx - Z modalem edycji tagów
 import React, { useState, useEffect } from "react";
-import { Message, LayerType, SchemaState } from "./types";
+import { Message, LayerType, SchemaState, ParsedTag } from "./types";
 import { parseTags, processTag } from "./schemaProcessor";
 import { sendToGemini } from "./apiService";
 import { ChatInput, LayerTabs, MessageList, SchemaDisplay } from "./components";
+import { TagEditorModal } from "./components/TagEditorModal";
 import { LAYERS_CONFIG, LAYERS, DEFAULT_SCHEMA_STATE } from "./LAYERS";
 import { ChatContainer, ChatHeader } from "@/themes/default";
 import { Code, Trash, X } from "lucide-react";
@@ -56,6 +57,11 @@ const TagBuilder: React.FC = () => {
   const [input, setInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [showSchema, setShowSchema] = useState<boolean>(false);
+  
+  // Modal state
+  const [editModalOpen, setEditModalOpen] = useState<boolean>(false);
+  const [editingTag, setEditingTag] = useState<ParsedTag | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
 
   // Zapisuj do localStorage
   useEffect(() => {
@@ -81,7 +87,7 @@ const TagBuilder: React.FC = () => {
       setMessages((prev) => [
         ...prev,
         {
-          id: Date.now(),
+          id: Date.now() + Math.random(),
           text: defaultMessage,
           type: "ai",
           tags: [],
@@ -93,10 +99,11 @@ const TagBuilder: React.FC = () => {
   const handleSubmit = async (): Promise<void> => {
     if (!input.trim() || loading) return;
 
+    const userMessageId = Date.now();
     setMessages((prev) => [
       ...prev,
       {
-        id: Date.now(),
+        id: userMessageId,
         text: input,
         type: "user",
         tags: [],
@@ -114,10 +121,11 @@ const TagBuilder: React.FC = () => {
       );
       const tags = parseTags(aiResponse);
 
+      const aiMessageId = Date.now() + Math.random(); // Dodaj losowość
       setMessages((prev) => [
         ...prev,
         {
-          id: Date.now() + 1,
+          id: aiMessageId,
           text: aiResponse,
           type: "ai",
           tags: tags.map((t) => t.tag),
@@ -133,10 +141,11 @@ const TagBuilder: React.FC = () => {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
+      const errorMessageId = Date.now() + Math.random() + 1000; // Jeszcze większa losowość
       setMessages((prev) => [
         ...prev,
         {
-          id: Date.now() + 1,
+          id: errorMessageId,
           text: `❌ Błąd: ${errorMessage}`,
           type: "ai",
           tags: [],
@@ -160,6 +169,62 @@ const TagBuilder: React.FC = () => {
         tags: [],
       },
     ]);
+  };
+
+  const handleTagEdit = (messageId: number, originalTag: ParsedTag, updatedTag: ParsedTag) => {
+    setEditingMessageId(messageId);
+    setEditingTag(originalTag);
+    setEditModalOpen(true);
+  };
+
+  const handleTagSave = (updatedTag: ParsedTag) => {
+    if (editingMessageId && editingTag) {
+      // Znajdź wiadomość i zaktualizuj jej treść
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === editingMessageId) {
+            // Zamień stary tag na nowy w treści wiadomości
+            const oldTagRegex = new RegExp(
+              `<${editingTag.tag}([^>]*)>`,
+              'g'
+            );
+            
+            const newTagString = `<${updatedTag.tag} ${Object.entries(updatedTag.params)
+              .map(([key, value]) => `${key}="${value}"`)
+              .join(' ')}>`;
+            
+            const updatedText = msg.text.replace(oldTagRegex, newTagString);
+            
+            return {
+              ...msg,
+              text: updatedText,
+              tags: msg.tags.map(tag => tag === editingTag.tag ? updatedTag.tag : tag)
+            };
+          }
+          return msg;
+        })
+      );
+
+      // Zaktualizuj schemat
+      try {
+        let updatedData = schema[currentLayer];
+        
+        // Usuń stare dane (jeśli tag się zmienił)
+        if (editingTag.tag !== updatedTag.tag) {
+          // Tu można dodać logikę usuwania starych danych
+        }
+        
+        // Dodaj nowe dane
+        updatedData = processTag(currentLayer, updatedTag.tag, updatedTag.params, updatedData);
+        setSchema((prev: any) => ({ ...prev, [currentLayer]: updatedData }));
+      } catch (error) {
+        console.error("Błąd aktualizacji schematu:", error);
+      }
+    }
+    
+    // Reset state
+    setEditingTag(null);
+    setEditingMessageId(null);
   };
 
   return (
@@ -224,6 +289,7 @@ const TagBuilder: React.FC = () => {
                 messages={messages}
                 loading={loading}
                 onLayerChange={handleLayerChange}
+                onTagEdit={handleTagEdit}
               />
             </div>
 
@@ -239,6 +305,19 @@ const TagBuilder: React.FC = () => {
           </ChatContainer>
         </div>
       </div>
+
+      {/* Tag Editor Modal */}
+      <TagEditorModal
+        isOpen={editModalOpen}
+        onClose={() => {
+          setEditModalOpen(false);
+          setEditingTag(null);
+          setEditingMessageId(null);
+        }}
+        tag={editingTag}
+        layer={currentLayer}
+        onSave={handleTagSave}
+      />
     </div>
   );
 };

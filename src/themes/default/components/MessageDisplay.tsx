@@ -7,6 +7,7 @@ interface MessageDisplayProps {
   type: "user" | "ai";
   onTagClick?: (tagName: string, nextLayer?: string) => void;
   getNextLayerForTag?: (tagName: string) => string | null;
+  onTagEdit?: (tagName: string, params: Record<string, string>) => void;
 }
 
 // Komponent do renderowania treści z inline tagami
@@ -14,7 +15,8 @@ export const MessageContent: React.FC<{
   text: string;
   onTagClick?: (tagName: string, nextLayer?: string) => void;
   getNextLayerForTag?: (tagName: string) => string | null;
-}> = ({ text, onTagClick, getNextLayerForTag }) => {
+  onTagEdit?: (tagName: string, params: Record<string, string>) => void;
+}> = ({ text, onTagClick, getNextLayerForTag, onTagEdit }) => {
   // Funkcja do parsowania tekstu z tagami i zamiany ich na komponenty
   const parseTextWithTags = (text: string) => {
     // Najpierw usuń wszystkie domykające tagi XML
@@ -37,8 +39,16 @@ export const MessageContent: React.FC<{
         }
       }
 
-      const [fullMatch, tagName] = match;
+      const [fullMatch, tagName, paramsStr] = match;
       const nextLayer = getNextLayerForTag?.(tagName);
+      
+      // Parse parametrów
+      const params: Record<string, string> = {};
+      const paramRegex = /(\w+)="([^"]*)"/g;
+      let paramMatch;
+      while ((paramMatch = paramRegex.exec(paramsStr)) !== null) {
+        params[paramMatch[1]] = paramMatch[2];
+      }
 
       // Utwórz graficzny tag
       if (nextLayer && onTagClick) {
@@ -47,9 +57,13 @@ export const MessageContent: React.FC<{
             key={`tag-${keyCounter++}`}
             className="w-full justify-between flex overflow-hidden gap-2 bg-green-500 text-white text-sm rounded-md transition-colors mt-3 mb-1 shadow-sm"
           >
-            <div className="flex items-center gap-2 px-4 py-3">
+            <button
+              onClick={() => onTagEdit?.(tagName, params)}
+              className="flex items-center gap-2 px-4 py-3 hover:bg-green-400 flex-1 text-left"
+              title="Kliknij aby edytować"
+            >
               <Check size={16} /> {tagName}
-            </div>
+            </button>
 
             <button
               onClick={() => onTagClick(tagName, nextLayer)}
@@ -62,12 +76,14 @@ export const MessageContent: React.FC<{
         );
       } else {
         parts.push(
-          <span
+          <button
             key={`simple-tag-${keyCounter++}`}
-            className="inline-flex items-center bg-green-400 text-white px-2 py-1 text-xs rounded-md mx-1"
+            onClick={() => onTagEdit?.(tagName, params)}
+            className="inline-flex items-center bg-green-400 text-white px-2 py-1 text-xs rounded-md mx-1 hover:bg-green-500 transition-colors"
+            title="Kliknij aby edytować"
           >
             {tagName}
-          </span>
+          </button>
         );
       }
 
@@ -97,10 +113,8 @@ export const MessageContent: React.FC<{
   return (
     <div className="whitespace-pre-wrap">
       {Array.isArray(content)
-        ? content.map((part, index) =>
-            typeof part === "string" ? <span key={index}>{part}</span> : part
-          )
-        : content}
+        ? content
+        : <span>{content}</span>}
     </div>
   );
 };
@@ -110,6 +124,7 @@ export const MessageDisplay: React.FC<MessageDisplayProps> = ({
   type,
   onTagClick,
   getNextLayerForTag,
+  onTagEdit,
 }) => {
   return (
     <div
@@ -121,6 +136,7 @@ export const MessageDisplay: React.FC<MessageDisplayProps> = ({
         text={text}
         onTagClick={type === "ai" ? onTagClick : undefined}
         getNextLayerForTag={getNextLayerForTag}
+        onTagEdit={type === "ai" ? onTagEdit : undefined}
       />
     </div>
   );
