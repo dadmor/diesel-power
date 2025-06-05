@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import { LoginForm } from './LoginForm'
 import { SignUpForm } from './SignUpForm'
 
+
 interface AuthGuardProps {
   children: React.ReactNode
 }

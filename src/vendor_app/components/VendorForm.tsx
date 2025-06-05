@@ -1,7 +1,8 @@
 // src/vendor_app/components/VendorForm.tsx
 import React, { useState } from 'react'
 import { useVendors } from '../context/VendorContext'
-import { Button, Input } from '../../themes/default'
+import { Input } from '@/themes/default/components/Form'
+import { Button } from '@/themes/default/components/Button'
 
 export const VendorForm: React.FC = () => {
   const { addVendor, loading } = useVendors()

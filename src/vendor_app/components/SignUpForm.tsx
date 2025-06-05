@@ -1,7 +1,9 @@
 // src/vendor_app/components/SignUpForm.tsx
 import React, { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { Button, Input } from '../../themes/default'
+import { Button } from '@/themes/default/components/Button'
+import { Input } from '@/themes/default/components/Form'
+
 
 interface SignUpFormProps {
   onToggleMode: () => void

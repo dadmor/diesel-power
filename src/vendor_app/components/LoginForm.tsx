@@ -1,7 +1,9 @@
 // src/vendor_app/components/LoginForm.tsx
 import React, { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { Button, Input } from '../../themes/default'
+import { Input } from '@/themes/default/components/Form'
+import { Button } from '@/themes/default/components/Button'
+
 
 interface LoginFormProps {
   onToggleMode: () => void

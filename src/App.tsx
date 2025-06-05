@@ -6,8 +6,8 @@ import { VendorProvider } from './vendor_app/context/VendorContext'
 import { AuthGuard } from './vendor_app/components/AuthGuard'
 import { VendorForm } from './vendor_app/components/VendorForm'
 import { VendorList } from './vendor_app/components/VendorList'
-import { Layout } from './themes/default'
 import TagBuilder from './shemaAgent/TagBuilder'
+import { Layout } from './themes/default/components/Layout'
 
 const App: React.FC = () => {
   return (
