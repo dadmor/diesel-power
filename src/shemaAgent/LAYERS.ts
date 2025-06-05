@@ -1,95 +1,78 @@
-// LAYERS.ts - Czysty JSON bez metod, gotowy na bazę danych
+// LAYERS.ts - Konfiguracja dla generycznego processora
 import { LayerType, Layer, SchemaState } from './types';
 
-// GŁÓWNA KONFIGURACJA - czysty JSON
 export const LAYERS_CONFIG = {
-  concept: {
-    name: "Koncepcja",
-    description: "Definiowanie podstawowej koncepcji aplikacji",
+  system: {
+    name: "System",
+    description: "Opis systemu i jego funkcji",
     placeholder: "Opisz jaki system chcesz stworzyć...",
-    defaultMessage: "Napisz jaki system chcesz stworzyć",
+    defaultMessage: "Napisz jaki system chcesz stworzyć i jakie ma mieć funkcje",
     tags: [
       {
-        name: 'create_app',
-        description: 'Tworzy definicję aplikacji',
-        params: ['name', 'description', 'category'],
-        example: '<create_app name="System CRM" description="Zarządzanie klientami" category="business">',
-        nextLayer: 'database' 
+        name: 'define_system',
+        description: 'Definiuje podstawy systemu',
+        params: ['name', 'description', 'type'],
+        example: '<define_system name="System CRM" description="Zarządzanie klientami" type="web">',
+        nextLayer: 'database' as LayerType as LayerType 
+      },
+      {
+        name: 'add_feature',
+        description: 'Dodaje funkcję systemu',
+        params: ['name'],
+        example: '<add_feature name="Zarządzanie kontaktami">',
+        nextLayer: 'database'
       }
     ]
   },
   
   database: {
     name: "Baza",
-    description: "Projektowanie struktury bazy danych",
-    placeholder: "Opisz jakie tabele i relacje potrzebujesz...",
-    defaultMessage: "Na podstawie koncepcji, jakie tabele i relacje potrzebujesz?",
+    description: "Tabele i relacje w bazie danych",
+    placeholder: "Opisz jakie tabele i pola potrzebujesz...",
+    defaultMessage: "Na podstawie opisu systemu, jakie tabele i relacje potrzebujesz?",
     tags: [
       {
         name: 'create_table',
-        description: 'Tworzy tabelę w bazie danych',
+        description: 'Tworzy tabelę',
         params: ['name', 'fields'],
-        example: '<create_table name="users" fields="id:number,name:string,email:string">',
-        nextLayer: 'ui'
+        example: '<create_table name="users" fields="id:number:required:unique,name:string:required,email:string:required:unique">',
+        nextLayer: 'ux' as LayerType as LayerType
       },
       {
         name: 'create_relation',
         description: 'Tworzy relację między tabelami',
-        params: ['from', 'to', 'type'],
-        example: '<create_relation from="users" to="orders" type="one-to-many">',
-        nextLayer: 'ui'
+        params: ['from', 'to', 'type', 'foreignKey'],
+        example: '<create_relation from="users" to="orders" type="one-to-many" foreignKey="user_id">',
+        nextLayer: 'ux'
       }
     ]
   },
   
-  ui: {
-    name: "UI",
-    description: "Projektowanie interfejsu użytkownika",
-    placeholder: "Opisz jakie strony i motyw chcesz...",
+  ux: {
+    name: "UX",
+    description: "Interfejs użytkownika i strony",
+    placeholder: "Opisz jakie strony i komponenty chcesz...",
     defaultMessage: "Jakie strony i interfejs chcesz dla swojej aplikacji?",
     tags: [
       {
         name: 'create_page',
-        description: 'Tworzy stronę w interfejsie',
-        params: ['title', 'type', 'table'],
-        example: '<create_page title="Lista użytkowników" type="list" table="users">',
-        nextLayer: 'refine'
-      },
-      {
-        name: 'set_theme',
-        description: 'Ustawia motyw interfejsu',
-        params: ['primary', 'layout'],
-        example: '<set_theme primary="#3b82f6" layout="sidebar">',
-        nextLayer: 'refine'
-      }
-    ]
-  },
-  
-  refine: {
-    name: "Komponenty",
-    description: "Tworzenie komponentów React Refine",
-    placeholder: "Opisz jakie listy, formularze i widżety potrzebujesz...",
-    defaultMessage: "Jakie komponenty i widżety chcesz w aplikacji?",
-    tags: [
-      {
-        name: 'create_list',
-        description: 'Tworzy widok listy',
-        params: ['table', 'columns', 'filters'],
-        example: '<create_list table="users" columns="name,email" filters="status">',
-        nextLayer: null 
-      },
-      {
-        name: 'create_form',
-        description: 'Tworzy formularz',
-        params: ['table', 'fields'],
-        example: '<create_form table="users" fields="name,email,phone">',
+        description: 'Tworzy stronę',
+        params: ['name', 'type', 'table'],
+        example: '<create_page name="Lista użytkowników" type="list" table="users">',
         nextLayer: null
       },
       {
-        name: 'add_widget',
-        description: 'Dodaje widget do dashboardu',
-        params: ['type', 'title', 'data'],
-        example: '<add_widget type="chart" title="Sprzedaż" data="orders">',
+        name: 'create_component',
+        description: 'Tworzy komponent',
+        params: ['name', 'type'],
+        example: '<create_component name="UserForm" type="form">',
+        nextLayer: null
+      },
+      {
+        name: 'set_theme',
+        description: 'Ustawia motyw',
+        params: ['primaryColor', 'layout', 'style'],
+        example: '<set_theme primaryColor="#3b82f6" layout="sidebar" style="modern">',
         nextLayer: null
       }
     ]
@@ -105,8 +88,7 @@ export const LAYERS: Layer[] = Object.entries(LAYERS_CONFIG).map(([id, config]) 
 
 // Domyślny stan schematu
 export const DEFAULT_SCHEMA_STATE: SchemaState = {
-  concept: null,
+  system: null,
   database: null,
-  ui: null,
-  refine: null,
+  ux: null,
 };

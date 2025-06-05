@@ -15,12 +15,12 @@ const getInitialData = () => {
     if (saved) {
       const data = JSON.parse(saved);
       return {
-        currentLayer: data.currentLayer || "concept",
+        currentLayer: data.currentLayer || "system",
         schema: data.schema || DEFAULT_SCHEMA_STATE,
         messages: data.messages || [
           {
             id: 1,
-            text: LAYERS_CONFIG.concept.defaultMessage,
+            text: LAYERS_CONFIG.system.defaultMessage,
             type: "ai",
             tags: [],
           },
@@ -32,12 +32,12 @@ const getInitialData = () => {
   }
 
   return {
-    currentLayer: "concept" as LayerType,
+    currentLayer: "system" as LayerType,
     schema: DEFAULT_SCHEMA_STATE,
     messages: [
       {
         id: 1,
-        text: LAYERS_CONFIG.concept.defaultMessage,
+        text: LAYERS_CONFIG.system.defaultMessage,
         type: "ai",
         tags: [],
       },
@@ -151,11 +151,11 @@ const TagBuilder: React.FC = () => {
   const handleReset = () => {
     localStorage.removeItem("schema_session");
     setSchema(DEFAULT_SCHEMA_STATE);
-    setCurrentLayer("concept");
+    setCurrentLayer("system");
     setMessages([
       {
         id: 1,
-        text: LAYERS_CONFIG.concept.defaultMessage,
+        text: LAYERS_CONFIG.system.defaultMessage,
         type: "ai",
         tags: [],
       },

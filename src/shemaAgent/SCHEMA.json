@@ -1,0 +1,266 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Generated System Schema",
+    "description": "Schema opisująca strukturę danych generowaną przez system warstw",
+    "type": "object",
+    "properties": {
+      "system": {
+        "type": "object",
+        "description": "Warstwa 1: Definicja systemu",
+        "properties": {
+          "system": {
+            "type": "object",
+            "description": "Podstawowe informacje o systemie",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Nazwa systemu"
+              },
+              "description": {
+                "type": "string",
+                "description": "Opis funkcjonalności systemu"
+              },
+              "type": {
+                "type": "string",
+                "enum": ["web", "mobile", "desktop", "api"],
+                "description": "Typ aplikacji"
+              }
+            },
+            "required": ["name", "description", "type"]
+          },
+          "features": {
+            "type": "array",
+            "description": "Lista funkcji systemu",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      
+      "database": {
+        "type": "object",
+        "description": "Warstwa 2: Struktura bazy danych",
+        "properties": {
+          "tables": {
+            "type": "array",
+            "description": "Tabele w bazie danych",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Nazwa tabeli"
+                },
+                "fields": {
+                  "type": "array",
+                  "description": "Pola tabeli",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Nazwa pola"
+                      },
+                      "type": {
+                        "type": "string",
+                        "enum": ["string", "number", "boolean", "date", "json"],
+                        "description": "Typ danych"
+                      },
+                      "required": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Czy pole jest wymagane"
+                      },
+                      "unique": {
+                        "type": "boolean",
+                        "default": false,
+                        "description": "Czy pole jest unikalne"
+                      }
+                    },
+                    "required": ["name", "type"]
+                  }
+                }
+              },
+              "required": ["name", "fields"]
+            }
+          },
+          "relations": {
+            "type": "array",
+            "description": "Relacje między tabelami",
+            "items": {
+              "type": "object",
+              "properties": {
+                "from": {
+                  "type": "string",
+                  "description": "Tabela źródłowa"
+                },
+                "to": {
+                  "type": "string",
+                  "description": "Tabela docelowa"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["one-to-one", "one-to-many", "many-to-many"],
+                  "description": "Typ relacji"
+                },
+                "foreignKey": {
+                  "type": "string",
+                  "description": "Klucz obcy (opcjonalny)"
+                }
+              },
+              "required": ["from", "to", "type"]
+            }
+          }
+        }
+      },
+      
+      "ux": {
+        "type": "object",
+        "description": "Warstwa 3: Interfejs użytkownika",
+        "properties": {
+          "pages": {
+            "type": "array",
+            "description": "Strony aplikacji",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Nazwa strony"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["list", "detail", "form", "dashboard", "auth"],
+                  "description": "Typ strony"
+                },
+                "table": {
+                  "type": "string",
+                  "description": "Powiązana tabela (opcjonalne)"
+                },
+                "components": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Lista komponentów na stronie"
+                }
+              },
+              "required": ["name", "type"]
+            }
+          },
+          "components": {
+            "type": "array",
+            "description": "Komponenty interfejsu",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Nazwa komponentu"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["button", "form", "table", "chart", "modal", "menu"],
+                  "description": "Typ komponentu"
+                },
+                "props": {
+                  "type": "object",
+                  "description": "Właściwości komponentu",
+                  "additionalProperties": true
+                }
+              },
+              "required": ["name", "type"]
+            }
+          },
+          "theme": {
+            "type": "object",
+            "description": "Motyw interfejsu",
+            "properties": {
+              "primaryColor": {
+                "type": "string",
+                "pattern": "^#[0-9A-Fa-f]{6}$",
+                "description": "Główny kolor (hex)"
+              },
+              "layout": {
+                "type": "string",
+                "enum": ["sidebar", "topbar", "minimal"],
+                "description": "Układ strony"
+              },
+              "style": {
+                "type": "string",
+                "enum": ["modern", "classic", "material", "bootstrap"],
+                "description": "Styl interfejsu"
+              }
+            },
+            "required": ["primaryColor", "layout"]
+          }
+        }
+      }
+    },
+    
+    "examples": [
+      {
+        "system": {
+          "system": {
+            "name": "System CRM",
+            "description": "Zarządzanie relacjami z klientami",
+            "type": "web"
+          },
+          "features": [
+            "Zarządzanie kontaktami",
+            "Śledzenie sprzedaży",
+            "Raporty"
+          ]
+        },
+        "database": {
+          "tables": [
+            {
+              "name": "users",
+              "fields": [
+                {
+                  "name": "id",
+                  "type": "number",
+                  "required": true,
+                  "unique": true
+                },
+                {
+                  "name": "name",
+                  "type": "string",
+                  "required": true
+                },
+                {
+                  "name": "email",
+                  "type": "string",
+                  "required": true,
+                  "unique": true
+                }
+              ]
+            }
+          ],
+          "relations": [
+            {
+              "from": "users",
+              "to": "orders",
+              "type": "one-to-many",
+              "foreignKey": "user_id"
+            }
+          ]
+        },
+        "ux": {
+          "pages": [
+            {
+              "name": "Lista użytkowników",
+              "type": "list",
+              "table": "users"
+            }
+          ],
+          "theme": {
+            "primaryColor": "#3b82f6",
+            "layout": "sidebar",
+            "style": "modern"
+          }
+        }
+      }
+    ]
+  }

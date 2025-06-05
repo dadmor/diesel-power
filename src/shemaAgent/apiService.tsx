@@ -8,15 +8,32 @@ export const sendToGemini = async (
   schema: SchemaState,
   messages: Message[]
 ): Promise<string> => {
-  const layerConfig = LAYERS_CONFIG[currentLayer];
-  const tagExamples = layerConfig.tags.map(tag => tag.example).join('\n');
+  const layerConfig = LAYERS_CONFIG[currentLayer as keyof typeof LAYERS_CONFIG];
   
-  const layerPrompt = `ODPOWIADAJ PO POLSKU. Pracujesz w warstwie: ${layerConfig.name}.
+  if (!layerConfig) {
+    throw new Error(`Nieznana warstwa: ${currentLayer}`);
+  }
+  
+  // Generuj listę dostępnych tagów bez konkretnych przykładów
+  const availableTags = layerConfig.tags.map(tag => {
+    const paramsList = tag.params.map(param => `${param}="..."`).join(' ');
+    return `<${tag.name} ${paramsList}> - ${tag.description}`;
+  }).join('\n');
+  
+  const layerPrompt = `ODPOWIADAJ PO POLSKU. Pracujesz w warstwie: ${layerConfig.name} - ${layerConfig.description}
 
-DOSTĘPNE TAGI:
-${tagExamples}
+DOSTĘPNE TAGI w tej warstwie:
+${availableTags}
 
-Zwróć naturalną odpowiedź z odpowiednimi tagami.`;
+ZASADY:
+- Używaj tagów XML do strukturyzowania odpowiedzi
+- Parametry tagów dostosuj do treści wiadomości użytkownika
+- Możesz używać tylko tagów z tej warstwy
+- Daj naturalną odpowiedź wraz z odpowiednimi tagami
+- Nie kopiuj przykładów, ale twórz własne wartości parametrów
+
+PRZYKŁAD formatu (dostosuj parametry do potrzeb):
+${layerConfig.tags[0].example}`;
 
   const context = {
     app: schema,
@@ -30,7 +47,7 @@ Zwróć naturalną odpowiedź z odpowiednimi tagami.`;
     body: JSON.stringify({
       message: `${layerPrompt}\n\nKONTEKST APLIKACJI: ${JSON.stringify(
         context.app
-      )}\n\nWIADOMOŚĆ: ${message}`,
+      )}\n\nWIADOMOŚĆ UŻYTKOWNIKA: ${message}`,
       context,
     }),
   });
