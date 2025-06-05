@@ -1,20 +1,9 @@
-// auth.ts
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { createClient, User as SupabaseUser } from '@supabase/supabase-js';
-
-const supabaseUrl = 'https://vvkjfzjikfuqdpmomdbx.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2a2pmemppa2Z1cWRwbW9tZGJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg4OTE2NTcsImV4cCI6MjA2NDQ2NzY1N30.sVejmzInkxXnGxjm5rowJKuwTuVrcJ40Ix3Dk1W3ogE';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Poprawione typy
-interface User {
-  id: string;
-  email?: string;
-}
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from '../config/supabase';
 
 interface AuthContextType {
-  user: SupabaseUser | null;  // Używamy SupabaseUser zamiast własnego User
+  user: SupabaseUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
@@ -29,11 +18,9 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
 });
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -51,17 +38,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string, password: string): Promise<void> => {
+  const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   };
 
-  const signUp = async (email: string, password: string): Promise<void> => {
+  const signUp = async (email: string, password: string) => {
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
   };
 
-  const signOut = async (): Promise<void> => {
+  const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
@@ -72,5 +59,3 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
-export const useAuth = (): AuthContextType => useContext(AuthContext);
