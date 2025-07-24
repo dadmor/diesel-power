@@ -231,7 +231,7 @@ React + TypeScript + Supabase + Google AI
 
 ---
 
-## TODO
+## TODO 1
 
 * **Walidacja prefixów (slug):**
 
